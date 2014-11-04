@@ -48,5 +48,5 @@ src\ASF\common\services\storage\ctrl_access\ctrl_access.c
 
 src\avr32_logo.c
 
-src\Practica4Lab.c
+src\ExamenPractico2.c
 

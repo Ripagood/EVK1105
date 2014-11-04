@@ -697,7 +697,7 @@
     <Compile Include="src\dummy.h">
       <SubType>compile</SubType>
     </Compile>
-    <Compile Include="src\Practica4Lab.c">
+    <Compile Include="src\ExamenPractico2.c">
       <SubType>compile</SubType>
     </Compile>
   </ItemGroup>

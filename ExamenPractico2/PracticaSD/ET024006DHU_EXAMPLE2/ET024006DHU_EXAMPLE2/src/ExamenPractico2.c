@@ -567,8 +567,10 @@ int main(void)
   // Wait for a card to be inserted
   //while (!sd_mmc_spi_mem_check());
  
+ 
+ uint8_t hayClave=0;
   uint32_t sector =10;
-  char disp[10];
+  char disp[50];
   char clave[7];
   usart_write_line(&AVR32_USART0,"Presione Left \n");
   usart_write_line(&AVR32_USART0,"Presione Right \n");
@@ -594,6 +596,7 @@ int main(void)
 		  }
 		  et024006_PrintString("******", (const unsigned char *)&FONT6x8, 220, 50, GREEN, -1);
 		  et024006_PrintString("Clave Recibida", (const unsigned char *)&FONT6x8, 80, 70, GREEN, -1);
+		  hayClave=1;
 		  
 	  }
 	  
@@ -604,14 +607,36 @@ int main(void)
 			sprintf(disp,"%u",sector);
 			end_of_transfer=0;
 			
+			
+				if (!hayClave)
+				{
+					CLR_disp();
+					et024006_PrintString(" ******ERROR no hay PASSWORD*******", (const unsigned char *)&FONT6x8, 80, 50, RED, -1);
+					et024006_PrintString(" ****** Resetee la EVK pls *******", (const unsigned char *)&FONT6x8, 80, 90, RED, -1);
+					
+					while(1);
+					
+				}
+			
+			hayClave=0;
 				  
 				  et024006_PrintString("Almacenando Clave", (const unsigned char *)&FONT6x8, 80, 50, GREEN, -1);
 				  et024006_PrintString(disp, (const unsigned char *)&FONT6x8, 80, 60, GREEN, -1);	  
-					  sd_mmc_spi_write_open(sector++);
+					 if (!sd_mmc_spi_mem_check() )
+					 {
+						 CLR_disp();
+						 et024006_PrintString(" ******ERROR no hay SD*******", (const unsigned char *)&FONT6x8, 80, 50, RED, -1);
+						 et024006_PrintString(" ****** Resetee la EVK pls*******", (const unsigned char *)&FONT6x8, 80, 90, RED, -1);
+						 while(1);
+					 }
+					 sd_mmc_spi_write_open(sector++);
 					  sd_mmc_spi_write_sector_from_ram(&password[0]);
 					  sd_mmc_spi_write_close();
 				  
-				
+				  sd_mmc_spi_get_capacity();
+				       int cap=capacity>>20;
+				       sprintf(disp,"%d MB",cap);
+				       et024006_PrintString(disp,(const unsigned char*)&FONT8x8,80,70,BLUE,-1);
 				  if (sector>20)
 				  {
 					  sector=10;
@@ -624,6 +649,7 @@ int main(void)
 		  CLR_disp();
 		  et024006_PrintString("Claves", (const unsigned char *)&FONT6x8, 80, 50, GREEN, -1);
 		  
+		 
 		  
 		  // Read the first sectors number 1, 2, 3 of the card
 		  for(int j = 10; j <= 20; j++)
@@ -650,280 +676,53 @@ int main(void)
 
 				  while(!end_of_transfer);
 					  getClave(&clave[0]);
-					  et024006_PrintString(clave, (const unsigned char *)&FONT6x8, 80, 60+j*7, GREEN, -1);
+					  if (clave[0]==0x00 && j==10)
+					  {
+						  CLR_disp();
+						  et024006_PrintString(" ******ERROR no hay claves en la SD*******", (const unsigned char *)&FONT6x8, 80, 50, RED, -1);
+						  et024006_PrintString(" ****** Resetee la EVK pls *******", (const unsigned char *)&FONT6x8, 80, 90, RED, -1);
+						  while(1);
+					  }
+					  et024006_PrintString(clave, (const unsigned char *)&FONT6x8, 80, 60+j*8, GREEN, -1);
 					  sprintf(disp,"%u",j);
-					  et024006_PrintString(disp, (const unsigned char *)&FONT6x8, 120, 60+j*7, GREEN, -1);
+					  et024006_PrintString(disp, (const unsigned char *)&FONT6x8, 130, 60+j*8, GREEN, -1);
 	
 			  }
 		  
 			}
-			else{
-				 et024006_PrintString("No hay SD insertada", (const unsigned char *)&FONT6x8, 80, 60, GREEN, -1);
-			}
 	  }
+	  
+	  
+	  if (debounce2(QT1081_TOUCH_SENSOR_DOWN))
+	  {
+		  uint32_t sector2=10;
+		  char borrar[512]={0};
+		  if (!sd_mmc_spi_mem_check() )
+		  {
+			  CLR_disp();
+			  et024006_PrintString(" ******ERROR no hay SD*******", (const unsigned char *)&FONT6x8, 80, 50, RED, -1);
+			  et024006_PrintString(" ****** Resetee la EVK pls*******", (const unsigned char *)&FONT6x8, 80, 90, RED, -1);
+			  while(1);
+		  }
+		  for (; sector2<=20; sector2++)
+		  {
+			  sd_mmc_spi_write_open(sector2);
+			  sd_mmc_spi_write_sector_from_ram(&borrar[0]);
+			  sd_mmc_spi_write_close();
+		  }
+		  
+		  
+		  CLR_disp();
+		  et024006_PrintString(" ****** SD CARD Borrada*******", (const unsigned char *)&FONT6x8, 80, 50, RED, -1);
+		sector=10;
+	  }
+	  
+	  
+	  
 	  
 	  }
   
   }
-
-
-
-void Rectangulo(void){
-	enter=1;
-	// Rectangulo rojo movido por las teclas
-	et024006_DrawFilledRect(0 , 0, ET024006_WIDTH, ET024006_HEIGHT, BLACK );
-	et024006_DrawFilledRect(RectX , RectY, 30, 30, RED);
-	while(enter);//interrupcion de enter saca de aqui
-}
-
-void Matrix(void){
-	#define MAX_COL 6  //numero de columnas a mostrar
-	#define COL_INICIAL 40 //Posicion en X en la cual iniciarlas
-	//Animacion de letras Matrix style
-	et024006_DrawFilledRect(0 , 0, ET024006_WIDTH, ET024006_HEIGHT, BLACK );
-	enter=1;
-	char* col;
-	col= (char*)malloc(sizeof(char)*22*MAX_COL); 
-	
-	
-	char* colPointers[MAX_COL];
-	for (uint16_t i=0; i<MAX_COL; i++)
-	{
-		colPointers[i]=&col[i*22];
-		
-	}
-	
-	
-
-  while(enter){
-	  char add=0;
-	  char add2=' ';
-	  char add3= ' ';
-	  char add4= ' ';
-	  
-	 
-	  
-	  
-	  for (uint16_t i=1; i<MAX_COL+1 ;i++)
-	  {
-		   //caracteres visibles del ASCII
-		  add2= (rand()%(126-32))+32;
-		  add3= (rand()%(126-32))+32;
-		   if (add)
-		   {
-			   add4=add2;
-		   }else add4= add3;
-		    if (rand()%2==1)
-		    {
-			    add ^= 1 << 0;//mas prbabilidad de que haya espacios
-		    }else add4= ' ';
-		   
-		  et024006_DrawFilledRect(i*COL_INICIAL , 0, 30, ET024006_HEIGHT, BLACK );
-		  addToArr(colPointers[i-1],add4,21);
-		  verticalPrint(colPointers[i-1],21,i*COL_INICIAL,GREEN);
-		  delay_ms(50);
-		  
-	  }
-	 
-
-}
-	free(col);
-}
-
-
-void Imagen(void){
-	CLR_disp();
-	
-	enter=1;
-	 // Dibuja a Iggy Azalea
-	 et024006_PutPixmap(Iggy, 320, 0, 0, 0, 0, 320, 240);
-	 while (enter)
-	 {
-	 }
-	
-	
-}
-
-
-void addToArr(char * str, char add, size_t size){
-	
-	for (uint16_t i=size;i>0;i--)
-	{
-		str[i]=str[i-1];
-		
-	}
-	str[0]=add;
-		
-}
-
-
-void centerTriangle(uint16_t x, uint16_t y, uint16_t size, et024006_color_t color){
-	
-	
-	drawTriangle(x-size/2,y+size*0.866/2,size,WHITE);
-	
-	
-}
-
-void Triangulos(void){
-	enter=1;
-	CLR_disp();
-	//uint16_t j=20;
-	/*
-	for (uint16_t i=200; i>20;i-=10)
-	{
-		j-=10;
-		drawTriangle(i, i-40,i/2,WHITE);
-	}
-	*/
-	
-	for (uint16_t i=10; i<130; i+=10)
-	{
-		
-		centerTriangle(160,80,i,WHITE);
-		
-	}
-	
-	for (uint16_t i=10; i<100; i+=10)
-	{
-		
-		centerTriangle(60,20,i,WHITE);
-		
-	}
-	
-	for (uint16_t i=10; i<100; i+=10)
-	{
-		
-		centerTriangle(320-60,20,i,WHITE);
-		
-	}
-	
-	while (enter)
-	{
-	}
-	
-	
-	
-}
-
-
-
-
-
-void AjedrezCrece(void){
-	uint16_t size=1,j=1,k=1,rnd=0;
-	
-	et024006_DrawFilledRect(0 , 0, ET024006_WIDTH, ET024006_HEIGHT, BLACK );
-	enter=1;
-	while(enter){
-	if(debounce2(QT1081_TOUCH_SENSOR_UP)){
-	size<<=1;
-	size=(size>32)?(size>>1):size;
-	}
-	if(debounce2(QT1081_TOUCH_SENSOR_DOWN)){
-	size>>=1;
-	size=(size<1)?(1):size;
-	et024006_DrawFilledRect(0 , 0, ET024006_WIDTH, ET024006_HEIGHT, BLACK );
-	}
-	for( k=0; k<8; k++){
-	for(j=0;j<8;j++){
-	et024006_DrawFilledRect(k*size,j*size,size,size,(k+j)%2==0?BLACK:WHITE); //Ej 2
-	
-	}
-	//et024006_DrawFilledRect(k*size,0*size,size,size,(k+0)%2==0?BLACK:WHITE);
-	//et024006_DrawFilledRect(k*size,1*size,size,size,(k+1)%2==0?BLACK:WHITE);
-	}
-	//delay_s(2);
-	}
-	
-	
-	
-	
-}
-
-
-void Caracol(void){
-	enter=1;
-	et024006_DrawFilledRect(0 , 0, ET024006_WIDTH, ET024006_HEIGHT, WHITE );
-	et024006_DrawFilledCircle(170,120,5,BLACK,TFT_QUADRANT3);et024006_DrawFilledCircle(170,120,2,WHITE,TFT_QUADRANT3);delay_ms(50);
-	et024006_DrawFilledCircle(170,120,5,BLACK,TFT_QUADRANT0);et024006_DrawFilledCircle(170,120,2,WHITE,TFT_QUADRANT0);delay_ms(50);	
-	et024006_DrawFilledCircle(170,125,10,BLACK,TFT_QUADRANT1);et024006_DrawFilledCircle(170,125,7,WHITE,TFT_QUADRANT1);delay_ms(50);
-	et024006_DrawFilledCircle(175,125,15,BLACK,TFT_QUADRANT2);et024006_DrawFilledCircle(175,125,12,WHITE,TFT_QUADRANT2);
-	delay_ms(50);
-	et024006_DrawFilledCircle(175,115,25,BLACK,TFT_QUADRANT3);et024006_DrawFilledCircle(175,115,22,WHITE,TFT_QUADRANT3);
-	delay_ms(50);
-	et024006_DrawFilledCircle(160,115,40,BLACK,TFT_QUADRANT0);et024006_DrawFilledCircle(160,115,37,WHITE,TFT_QUADRANT0);
-	delay_ms(50);
-	et024006_DrawFilledCircle(160,140,65,BLACK,TFT_QUADRANT1);et024006_DrawFilledCircle(160,140,62,WHITE,TFT_QUADRANT1);
-	delay_ms(50);
-	et024006_DrawFilledCircle(200,140,105,BLACK,TFT_QUADRANT2);et024006_DrawFilledCircle(200,140,102,WHITE,TFT_QUADRANT2);
-	delay_ms(50);
-	et024006_DrawFilledCircle(200,75,170,BLACK,TFT_QUADRANT3);et024006_DrawFilledCircle(200,75,167,WHITE,TFT_QUADRANT3);
-	delay_ms(50);
-	
-	while (enter)
-	{
-	}
-	
-}
-
-
-
-
-void AjedrezRandom(void){
-
-	
-	uint16_t size=1,j=1,k=1,rnd=0;
-	et024006_DrawFilledRect(0 , 0, ET024006_WIDTH, ET024006_HEIGHT, BLACK );
-	enter=1;
-	while(enter){
-	if(debounce2(QT1081_TOUCH_SENSOR_UP)){
-	size<<=1;
-	size=(size>32)?(size>>1):size;
-	}
-	if(debounce2(QT1081_TOUCH_SENSOR_DOWN)){
-	size>>=1;
-	size=(size<1)?(1):size;
-	et024006_DrawFilledRect(0 , 0, ET024006_WIDTH, ET024006_HEIGHT, BLACK );
-	}
-	for( k=0; k<8; k++){
-	for(j=0;j<8;j++){
-	//et024006_DrawFilledRect(k*size,j*size,size,size,(k+j)%2==0?BLACK:WHITE); //Ej 2
-	rnd=255*rand();
-	et024006_DrawFilledRect(k*size,j*size,size,size,(2*rnd)|((4*rnd)<<5)|((2*rnd)<<11)); //Ej 5
-	}
-	//et024006_DrawFilledRect(k*size,0*size,size,size,(k+0)%2==0?BLACK:WHITE);
-	//et024006_DrawFilledRect(k*size,1*size,size,size,(k+1)%2==0?BLACK:WHITE);
-	}
-	//delay_s(2);
-	
-	
-}
-}
-
-
-
-
-
-
-void verticalPrint(char *str,size_t size, uint16_t x, et024006_color_t color){
-	//imprime una string en vertical
-	char str2[]={' ','\0'};
-	uint16_t i=0;
-	
-	for (uint16_t y=0;y<230;y+=10)
-	{
-		str2[0]=str[i++];
-		et024006_PrintString(str2, (const unsigned char *)&FONT8x8, x, y, color, -1);
-		if (i>=size)
-		{
-			break;
-		}
-	}
-}
-
-
-
 
 
 
@@ -932,142 +731,6 @@ void CLR_disp(void)
 	// Clear the display i.e. make it black
 	et024006_DrawFilledRect(0 , 0, ET024006_WIDTH, ET024006_HEIGHT, BLACK );
 }
-
-void Ej1(void)
-{
-	//320,240
-	//Tablero 240,240
-	//cuadros de 240/8=30 30x30
-	enter=1;
-	U32 i,j,c;
-	c=WHITE;
-	for(i=0; i<8; i++)
-	{
-		if(i%2) c=BLACK;
-		else    c=WHITE;
-		for(j=0;j<8;j++)
-		{
-			et024006_DrawFilledRect(j*30,i*30,30,30,c);
-			if(c==BLACK) c=WHITE;
-			else         c=BLACK;
-			delay_ms(10);
-		}
-	}
-	while(enter){};
-}
-
-void Ej4(void)
-{
-	enter=1;
-	while(enter)
-	{
-		et024006_DrawPixel(rand()%ET024006_WIDTH,rand()%ET024006_HEIGHT,RGB(rand()%31, rand()%63 , rand()%31 ));
-		//delay_ms(10);
-	}
-}
-
-void Ej7(void)
-{
-	U32 i;
-	enter=1;
-	//320,240
-	//Colores Arriba
-	et024006_DrawFilledRect(0,0,45,150,WHITE);
-	et024006_DrawFilledRect(45,0,45,150,RGB(31,63,0)); //amarillo
-	et024006_DrawFilledRect(45*2,0,45,150,RGB(0,63,31));//azul 1
-	et024006_DrawFilledRect(45*3,0,45,150,RGB(0,63,0));//verde
-	et024006_DrawFilledRect(45*4,0,45,150,RGB(31,0,31));//violeta
-	et024006_DrawFilledRect(45*5,0,45,150,RGB(31,0,0));//rojo
-	et024006_DrawFilledRect(45*6,0,45,150,RGB(0,0,31));//azul 2
-	//Colores Enmedio
-	et024006_DrawFilledRect(0,150,45,20,RGB(0,0,31));//azul 2
-	et024006_DrawFilledRect(45,150,45,20,RGB(31,0,31));//violeta
-	et024006_DrawFilledRect(45*2,150,45,20,RGB(31,63,0)); //amarillo
-	et024006_DrawFilledRect(45*3,150,45,20,RGB(31,0,0));//rojo
-	et024006_DrawFilledRect(45*4,150,45,20,RGB(0,63,31));//azul 1
-	et024006_DrawFilledRect(45*5,150,45,20,BLACK);
-	et024006_DrawFilledRect(45*6,150,45,20,WHITE);
-	//difuminados blanconegro
-	for(i=0;i<190;i++)
-	{
-		et024006_DrawVertLine(i,170,30,RGB(i*31/190,i*63/190,i*31/190));
-	}
-	//difuminado colores
-	for(i=0;i<10;i++) //rojo a amarillo
-	{
-		et024006_DrawVertLine(i,170,30,RGB(31,i*6,0));
-	}
-	for(i=0;i<10;i++) //amarillo a verde
-	{
-		et024006_DrawVertLine(i+10,170,30,RGB((10-i)*3,63,0));
-	}
-	for(i=0;i<10;i++) //verde a azul1
-	{
-		et024006_DrawVertLine(i+20,170,30,RGB(0,63,i));
-	}
-	for(i=0;i<10;i++) //azul 1 a azul2
-	{
-		et024006_DrawVertLine(i+30,170,30,RGB(0,(10-i)*6,31));
-	}
-	for(i=0;i<10;i++) // azul 2 a violeta
-	{
-		et024006_DrawVertLine(i+40,170,30,RGB(i*3,0,31));
-	}
-	//difuminado cuadros
-	for(i=0;i<12;i++)
-	{
-		et024006_DrawFilledRect(i*15,200,15,40,RGB(i*31/12,i*63/12,i*31/12));
-	}
-	//cuadro negro
-	et024006_DrawFilledRect(180,200,40,40,RGB(i*31/12,i*63/12,i*31/12));
-	while (enter)
-	{
-	}
-}
-
-void Ej11(void)
-{
-	//320,240
-	//et024006_DrawLine(x,y,x2,y2,c);
-	// lineas apoyo
-	enter=1;
-	et024006_DrawLine(160,120,0,240,RGB(0,63,31));
-	delay_ms(10);
-	et024006_DrawLine(160,120,320,240,RGB(0,63,31));
-	delay_ms(1);
-	et024006_DrawLine(120,0,0,240,RGB(0,63,31));
-	delay_ms(10);
-	et024006_DrawLine(120,0,320,240,RGB(0,63,31));
-	delay_ms(10);
-	et024006_DrawLine(200,150,0,240,RGB(0,63,31));
-	delay_ms(10);
-	et024006_DrawLine(130,130,320,240,RGB(0,63,31));
-	delay_ms(10);
-	//Lineas negras
-	et024006_DrawLine(160,120,130,130,WHITE);
-	delay_ms(10);
-	et024006_DrawLine(160,120,200,150,WHITE);
-	delay_ms(10);
-	et024006_DrawLine(120,0,130,20,WHITE);
-	delay_ms(10);
-	et024006_DrawLine(120,0,200,36,WHITE);
-	delay_ms(10);
-	et024006_DrawLine(200,150,180,159,WHITE);
-	delay_ms(10);
-	et024006_DrawLine(130,130,180,159,WHITE);
-	delay_ms(10);
-	//Lineas Verticales
-	et024006_DrawLine(120,0,120,160,WHITE);
-	delay_ms(10);
-	et024006_DrawLine(130,20,130,130,WHITE);
-	delay_ms(10);
-	et024006_DrawLine(200,36,200,150,WHITE);
-	delay_ms(10);
-	while (enter)
-	{
-	}
-}
-
 
 
 uint32_t debounce2( uint32_t GPIO_PIN ){//regresar se presiono el boton o no
@@ -1086,451 +749,6 @@ uint32_t debounce2( uint32_t GPIO_PIN ){//regresar se presiono el boton o no
 	}
 	salir:
 	return 0;
-}
-
-void reloj(void){
-	//static int lastSegundos;
-	char disp[20];
-	sprintf(disp,"%d: %d: %d",horas,minutos,segundos);
-	
-	
-	
-	if (tc_tick == 500)//cada 500ms refresca la pantall
-	{
-		et024006_DrawFilledRect(80,50,80,40, BLACK);
-		et024006_PrintString(disp, (const unsigned char *)&FONT8x16, 80, 50, BLUE, -1);
-	}
-	while(enter)
-	{
-		
-		//gpio_disable_pin_interrupt(QT1081_TOUCH_SENSOR_ENTER);
-		gpio_disable_pin_interrupt(QT1081_TOUCH_SENSOR_UP);
-		gpio_disable_pin_interrupt(QT1081_TOUCH_SENSOR_DOWN);
-		tc_stop(tc, TC_CHANNEL);  
-		//Disable_global_interrupt();
-		//delay_ms(100);
-		
-		
-			
-			if (debounce2(QT1081_TOUCH_SENSOR_UP))
-			{
-				horas++;
-				if (horas>23)
-				{
-					horas=0;
-				}
-				sprintf(disp,"%d: %d: %d",horas,minutos,segundos);
-				et024006_DrawFilledRect(80,50,80,40, BLACK);
-				et024006_PrintString(disp, (const unsigned char *)&FONT8x16, 80, 50, BLUE, -1);
-			}
-			if (debounce2(QT1081_TOUCH_SENSOR_DOWN))
-			{
-				minutos++;
-				if (minutos>59)
-				{
-					minutos=0;
-				}
-				sprintf(disp,"%d: %d: %d",horas,minutos,segundos);
-				et024006_DrawFilledRect(80,50,80,40, BLACK);
-				et024006_PrintString(disp, (const unsigned char *)&FONT8x16, 80, 50, BLUE, -1);
-			}
-			
-			
-		
-		//Enable_global_interrupt();
-		//enter=1;
-		//enter ^= (1<<0);
-	}
-	gpio_enable_pin_interrupt(QT1081_TOUCH_SENSOR_UP,GPIO_RISING_EDGE);
-	gpio_enable_pin_interrupt(QT1081_TOUCH_SENSOR_DOWN,GPIO_RISING_EDGE);
-	tc_start(tc, TC_CHANNEL);  
-	
-	
-	
-}
-
-
-void cronometro(void){
-	
-	static int mil=0;
-	static int seg=0;
-	static int minu=0;
-	static int hor=0;
-	
-	#define POSX_CRON 120
-	#define POSY_CRON 80
-	
-	char disp[20];
-	sprintf(disp,"%d: %d: %d: %d",hor,minu,seg,mil);
-	
-	et024006_PrintString("C R O N O M E T R O \n\n     Press Enter \n       to Start", (const unsigned char *)&FONT8x16, 80, 5, BLUE, -1);
-	
-	et024006_PrintString("Press Enter \n to Stop \n\n Press Up \n to Reset", (const unsigned char *)&FONT8x16, 120, 120, BLUE, -1);
-	
-	if (resetTimer)
-	{
-		mil=0;
-		seg=0;
-		minu=0;
-		hor=0;
-		resetTimer=0;
-		et024006_DrawFilledRect(POSX_CRON,POSY_CRON,120,40, BLACK);
-		sprintf(disp,"%d: %d: %d: %d",hor,minu,seg,mil);
-		et024006_PrintString(disp, (const unsigned char *)&FONT8x16, POSX_CRON, POSY_CRON, BLUE, BLACK);
-	}
-	
-	
-	
-	if (tc_tick == 500)
-	{
-		et024006_DrawFilledRect(80,80,120,40, BLACK);
-		et024006_PrintString(disp, (const unsigned char *)&FONT8x16, POSX_CRON, POSY_CRON, BLUE, -1);
-	}
-		
-
-	while (go)
-	{
-		if ( tc_tick % 10 ==0 )//cada 10
-		{
-			mil++;
-			if (mil>=100)
-			{
-				mil=0;
-				seg++;
-				if (seg>=60)
-				{
-					seg=0;
-					minu++;
-					if (minu>=60)
-					{
-						minu=0;
-						hor++;
-						if (hor>=24)
-						{
-							hor=0;
-						}
-					}
-				}
-			}
-			et024006_DrawFilledRect(POSX_CRON,POSY_CRON,110,20, BLACK);
-			sprintf(disp,"%d: %d: %d: %d",hor,minu,seg,mil);
-			et024006_PrintString(disp, (const unsigned char *)&FONT8x16, POSX_CRON, POSY_CRON, BLUE, BLACK);
-		}
-		
-	}
-	
-	
-	
-	
-}
-
-int puntuacionMin = 0;
-int puntuacionHor = 0;
-void PONG(void){
-	#define WHOLE TFT_QUADRANT0 | TFT_QUADRANT1 | TFT_QUADRANT2 | TFT_QUADRANT3
-	#define POSX_COUNTER1 280
-	#define POSY_COUNTER1 20
-	#define POSX_COUNTER2 40
-	#define POSY_COUNTER2 20
-	static uint32_t Barra1 = 10;
-	static uint32_t Barra2 = 100;
-	static uint32_t BolitaX= 60;
-	static uint32_t BolitaY=60;
-	static uint32_t VelX =1;
-	static uint32_t VelY=1;
-	//static int puntuacionMin = 0;
-	//static int puntuacionHor = 0;
-	int r=1;
-	char disp[10];
-	
-	if (r==1)
-	{
-		puntuacionHor=horas;
-		puntuacionMin=minutos;
-		r=0;
-	}
-	
-	
-	et024006_DrawFilledCircle(BolitaX,BolitaY,5,BLACK,WHOLE);
-	BolitaX+=VelX;
-	BolitaY+=VelY;
-	et024006_DrawFilledCircle(BolitaX,BolitaY,5,WHITE,WHOLE);
-	delay_ms(3);
-	
-	et024006_DrawFilledRect(0,Barra1,10,40,BLACK);
-	if ((BolitaX<160) & gana2)
-	{
-		Barra1 = BolitaY-20;
-	}
-	
-	if (gana2==0)
-	{
-		Barra1 = Barra2;
-	}
-	
-	et024006_DrawFilledRect(0,Barra1,10,40,WHITE);
-	
-	
-	et024006_DrawFilledRect(310,Barra2,10,40,BLACK);
-	if ((BolitaX>160) & (gana1))
-	{
-		Barra2 = BolitaY-20;
-	}
-	
-	if (gana1==0)
-	{
-		Barra2= Barra1;
-	}
-	
-	
-	et024006_DrawFilledRect(310,Barra2,10,40,WHITE);
-	
-	
-	
-	if ((BolitaX==320-13) &&   (Barra2>= BolitaY-20) && (Barra2+20<=BolitaY) )
-	{
-		VelX=-1;
-		
-		
-	}
-	
-	
-	
-	if (BolitaY==240-13)
-	{
-		
-		VelY=-1;
-		
-		
-		
-		
-	}
-	
-	if ((BolitaX==13) && (  (Barra1>=BolitaY-20) && (Barra1+20 <= BolitaY) ))
-	{
-		VelX=1;
-	}
-	
-	if (BolitaY==5)
-	{
-		VelY=1;
-	}
-	
-	if (BolitaX >= 310)
-	{//si llega aqui, perdio el de minutos
-		et024006_DrawFilledCircle(BolitaX,BolitaY,5,BLACK,WHOLE);
-		BolitaX=16;
-		gana1=1;
-		verticalPrint("SCORE",5,160,WHITE);
-		delay_ms(500);
-		et024006_DrawFilledRect(160,0,10,50,BLACK);
-		puntuacionMin++;
-		/*sprintf(disp,"%d",puntuacionHor);
-		et024006_DrawFilledRect(POSX_COUNTER2,POSY_COUNTER2,10,10, BLACK);
-		et024006_PrintString(disp,(const unsigned char *)&FONT8x16, POSX_COUNTER2, POSY_COUNTER2, WHITE, BLACK);
-		
-		puntuacionMin++;
-		
-		sprintf(disp,"%d",puntuacionMin);
-		et024006_DrawFilledRect(POSX_COUNTER1,POSY_COUNTER1,10,10, BLACK);
-		et024006_PrintString(disp,(const unsigned char *)&FONT8x16, POSX_COUNTER1, POSY_COUNTER1, WHITE, BLACK);*/
-	}
-	
-	if (BolitaX <= 12)
-	{//si llega aqui, perdio el de horas
-		et024006_DrawFilledCircle(BolitaX,BolitaY,5,BLACK,WHOLE);
-		BolitaX=310;
-		VelX = -1;
-		gana2=1;
-		puntuacionHor++;
-		/*
-		sprintf(disp,"%d",puntuacionHor);
-		et024006_DrawFilledRect(POSX_COUNTER2,POSY_COUNTER2,10,10, BLACK);
-		et024006_PrintString(disp,(const unsigned char *)&FONT8x16, POSX_COUNTER2, POSY_COUNTER2, WHITE, BLACK);
-		
-		
-		
-		sprintf(disp,"%d",puntuacionMin);
-		et024006_DrawFilledRect(POSX_COUNTER1,POSY_COUNTER1,10,10, BLACK);
-		et024006_PrintString(disp,(const unsigned char *)&FONT8x16, POSX_COUNTER1, POSY_COUNTER1, WHITE, BLACK);
-		*/
-	}
-	
-	
-	
-	//puntuacionHor = horas;
-	//puntuacionMin = minutos;
-	sprintf(disp,"%d",puntuacionHor);
-	et024006_DrawFilledRect(POSX_COUNTER2,POSY_COUNTER2,10,10, BLACK);
-	et024006_PrintString(disp,(const unsigned char *)&FONT8x16, POSX_COUNTER2, POSY_COUNTER2, WHITE, BLACK);
-	
-	
-	
-	sprintf(disp,"%d",puntuacionMin);
-	et024006_DrawFilledRect(POSX_COUNTER1,POSY_COUNTER1,10,10, BLACK);
-	et024006_PrintString(disp,(const unsigned char *)&FONT8x16, POSX_COUNTER1, POSY_COUNTER1, WHITE, BLACK);
-}
-
-
-void recibirImagen(uint32_t sector){
-	
-	#define image_X 80
-	#define image_Y 80
-	uint16_t imagen[6400];
-		uint32_t i,j;
-		//usart_write_line(EXAMPLE_USART, "Listo para recibir imagen\n");
-		uint16_t r,g,b;
-		uint16_t color_bw;
-		uint16_t color_gray;
-		uint16_t color;
-		uint16_t d=0;
-
-		for(i=0; i<image_Y; i++)
-		{
-			for(j=0; j<image_X;j++)
-			{
-				color=usart_getchar(EXAMPLE_USART)<<8;
-				color+=usart_getchar(EXAMPLE_USART);
-				et024006_DrawPixel(j,i,color);
-				imagen[d++]=color;
-				r=color & 0x001F;
-				g=(color>>6) & 0x001F;
-				b=(color>>11) & 0x001F;
-				color_gray=(   (((r+g+b)/3)<<11) + (((r+g+b)/3)<<6) + ((r+g+b)/3));
-				et024006_DrawPixel(j,i+image_Y,color_gray);
-				if(((r+g+b)/3)>15)
-				{
-					color_bw=WHITE;
-				}
-				else
-				{
-					color_bw=BLACK;
-				}
-				et024006_DrawPixel(j,i+2*image_Y,color_bw);
-				/*
-				if(i==0 && j==0)
-				usart_write_line(EXAMPLE_USART, "Recibiendo imagen...\n");*/
-				
-			}
-		
-			
-		}
-		usart_write_line(EXAMPLE_USART, "Escribiendo a SD\n");
-		saveImage(&imagen[0],sector);
-		usart_write_line(EXAMPLE_USART, "Imagen recibida\n");
-}
-
-
-
-
-void loadImage(uint8_t* buffer,uint32_t sector){
-	
-	
-	
-	for(int i =0;i<25;i++){
-	sd_mmc_spi_write_open(sector+i);
-	sd_mmc_spi_read_sector_to_ram(buffer+512*i);
-	sd_mmc_spi_read_close();
-	}
-	
-}
-
-void displayImage(uint32_t sector){
-	#define image_X 80
-	#define image_Y 80
-	
-		uint32_t i,j;
-		//usart_write_line(EXAMPLE_USART, "Listo para recibir imagen\n");
-		uint16_t r,g,b;
-		uint16_t color_bw;
-		uint16_t color_gray;
-		uint16_t color;
-		
-		uint8_t imagen[12800];
-		uint16_t d=0;
-		
-		loadImage(&imagen[0],sector);
-
-		for(i=0; i<image_Y; i++)
-		{
-			for(j=0; j<image_X;j++)
-			{
-				color=imagen[d++];
-				color+=imagen[d++]<<8;
-				
-				
-				
-		
-				
-				
-				et024006_DrawPixel(j,i,color);
-				
-				r=color & 0x001F;
-				g=(color>>6) & 0x001F;
-				b=(color>>11) & 0x001F;
-				color_gray=(   (((r+g+b)/3)<<11) + (((r+g+b)/3)<<6) + ((r+g+b)/3));
-				et024006_DrawPixel(j,i+image_Y,color_gray);
-				if(((r+g+b)/3)>15)
-				{
-					color_bw=WHITE;
-				}
-				else
-				{
-					color_bw=BLACK;
-				}
-				et024006_DrawPixel(j,i+2*image_Y,color_bw);
-				/*
-				if(i==0 && j==0)
-				usart_write_line(EXAMPLE_USART, "Recibiendo imagen...\n");*/
-				
-			}
-		
-			
-		}
-}
-
-
-void deleteImage(uint32_t sector){
-	uint8_t buffer2[512];
-	uint32_t inicio = sector +25;
-	
-	
-	memset(&buffer2[0],0xFF,512);
-	
-	for (;sector<inicio;sector++)
-	{
-			
-		sd_mmc_spi_write_open(sector);
-		sd_mmc_spi_write_sector_from_ram(&buffer2[0]);
-		sd_mmc_spi_write_close();
-	}
-
-	
-}
-
-
-void saveImage(uint16_t* buffer,uint32_t sector){
-	uint8_t buffer2[512];
-	uint32_t inicio = sector +25;
-	uint32_t j=0;
-	for (;sector<inicio;sector++)
-	{
-		
-		
-		for (int i=0; i<512;)
-		{
-			buffer2[i++]=(uint8_t)buffer[j];
-			buffer2[i++]=(uint8_t)(buffer[j]>>8);
-			j++;
-		}
-		
-		
-		sd_mmc_spi_write_open(sector);
-		sd_mmc_spi_write_sector_from_ram(&buffer2[0]);
-		sd_mmc_spi_write_close();
-	}
-
-	
 }
 
 static void sd_mmc_resources_init(void)
@@ -1681,7 +899,7 @@ void getClave(char* clave){
 			
 			clave[i]= ( (U8)(*(ram_buffer + i)));
 		}
-		clave[7]='\0';
+		clave[6]='\0';
 }
 
 // Software wait

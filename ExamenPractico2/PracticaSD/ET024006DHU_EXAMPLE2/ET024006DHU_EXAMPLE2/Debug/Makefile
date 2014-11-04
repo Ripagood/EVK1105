@@ -103,7 +103,7 @@ C_SRCS +=  \
 ../src/ASF/common/services/serial/usart_serial.c \
 ../src/ASF/common/services/storage/ctrl_access/ctrl_access.c \
 ../src/avr32_logo.c \
-../src/Practica4Lab.c
+../src/ExamenPractico2.c
 
 
 PREPROCESSING_SRCS +=  \
@@ -139,7 +139,7 @@ src/ASF/common/services/clock/uc3a0_a1/sysclk.o \
 src/ASF/common/services/serial/usart_serial.o \
 src/ASF/common/services/storage/ctrl_access/ctrl_access.o \
 src/avr32_logo.o \
-src/Practica4Lab.o
+src/ExamenPractico2.o
 
 OBJS_AS_ARGS +=  \
 src/ASF/avr32/boards/evk1105/led.o \
@@ -165,7 +165,7 @@ src/ASF/common/services/clock/uc3a0_a1/sysclk.o \
 src/ASF/common/services/serial/usart_serial.o \
 src/ASF/common/services/storage/ctrl_access/ctrl_access.o \
 src/avr32_logo.o \
-src/Practica4Lab.o
+src/ExamenPractico2.o
 
 C_DEPS +=  \
 src/ASF/avr32/boards/evk1105/led.d \
@@ -191,7 +191,7 @@ src/ASF/common/services/clock/uc3a0_a1/sysclk.d \
 src/ASF/common/services/serial/usart_serial.d \
 src/ASF/common/services/storage/ctrl_access/ctrl_access.d \
 src/avr32_logo.d \
-src/Practica4Lab.d
+src/ExamenPractico2.d
 
 C_DEPS_AS_ARGS +=  \
 src/ASF/avr32/boards/evk1105/led.d \
@@ -217,7 +217,7 @@ src/ASF/common/services/clock/uc3a0_a1/sysclk.d \
 src/ASF/common/services/serial/usart_serial.d \
 src/ASF/common/services/storage/ctrl_access/ctrl_access.d \
 src/avr32_logo.d \
-src/Practica4Lab.d
+src/ExamenPractico2.d
 
 OUTPUT_FILE_PATH +=ET024006DHU_EXAMPLE2.elf
 
