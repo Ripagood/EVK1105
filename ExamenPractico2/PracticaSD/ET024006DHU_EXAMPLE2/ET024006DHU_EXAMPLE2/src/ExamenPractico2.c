@@ -1,22 +1,4 @@
-/*
 
-Equipo Laboratario Sistemas Embebidos
-
-Rectangulo, Matrix, Triangle, Imagen , debounce2 and main.c by Ripagood //Elias Ventura
-Ej1, Ej4, Ej7, Ej11 by Aldric
-AjedrezRandom, AjedrezCrece by Juan Manuel
-
-
-// This program is free software: you can redistribute it and/or modify it under the terms of the GNU General Public License as published by the Free Software Foundation, either version 3 of the License, or (at your option) any later version.
-// 
-// This program is distributed in the hope that it will be useful,
-// but WITHOUT ANY WARRANTY; without even the implied warranty of
-// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-// GNU General Public License for more details.
-// 
-// You should have received a copy of the GNU General Public License
-// along with this program.  If not, see <http://www.gnu.org/licenses/>.
-*/
 
 
 #include "board.h"
@@ -27,12 +9,10 @@ AjedrezRandom, AjedrezCrece by Juan Manuel
 #include "avr32_logo.h"
 #include "conf_clock.h"
 #include <stdio.h>
-#include "iggy.h"
 #include "tc.h"
 #include "conf_clock.h"
 #include "usart.h"
 #include <stdlib.h>
-#include "Practica4Lab.h"
 #include "spi.h"
 #include "conf_sd_mmc_spi.h"
 #include "sd_mmc_spi.h"
@@ -77,7 +57,7 @@ volatile char ram_buffer[516];
 #define AVR32_PDCA_CHANNEL_SPI_TX 1 //CANAL 1 para SPI TX
 #define AVR32_PDCA_CHANNEL_SPI_RX 0 //CANAL 2 para SPI RX
 
-#if BOARD == EVK1105
+
 #include "pwm.h"
 #include <string.h>
 avr32_pwm_channel_t pwm_channel6 = {
@@ -91,155 +71,6 @@ avr32_pwm_channel_t pwm_channel6 = {
   .cdty = 0,
   .cprd = 100
 };
-
-__attribute__ ((__interrupt__)) void tecla_lrc_isr(void){//handler teclas left, right o center
-	
-	
-	
-
-	if (gpio_get_pin_interrupt_flag (QT1081_TOUCH_SENSOR_LEFT))
-	{
-		
-		gpio_clear_pin_interrupt_flag(QT1081_TOUCH_SENSOR_LEFT);
-		//LastRectX=RectX;
-		#if	PRACTICA == 2
-		
-		if (actividad==0)
-		{
-			while(gpio_get_pin_value(QT1081_TOUCH_SENSOR_LEFT)){
-				et024006_DrawFilledRect(RectX , RectY, 30, 30, BLACK);//borra la posicion pasada
-				RectX+=2;
-				et024006_DrawFilledRect(RectX , RectY, 30, 30, RED);
-				delay_ms(10);
-				
-			}
-			
-		}
-		#endif
-		
-		
-		
-	}
-
-	if (gpio_get_pin_interrupt_flag (QT1081_TOUCH_SENSOR_RIGHT))
-	{
-		
-		gpio_clear_pin_interrupt_flag(QT1081_TOUCH_SENSOR_RIGHT);
-		//LastRectX=RectX;
-		if (actividad != 1)
-		{
-			actividad = 1; //te lleva al reloj
-			CLR_disp();
-		}
-		
-		
-		
-		#if PRACTICA == 2
-		if (actividad==0)
-		{
-			while(gpio_get_pin_value(QT1081_TOUCH_SENSOR_RIGHT)){
-				et024006_DrawFilledRect(RectX , RectY, 30, 30, BLACK);//borra la posicion pasada
-				RectX-=2;
-				et024006_DrawFilledRect(RectX , RectY, 30, 30, RED);
-				delay_ms(10);
-			}
-			
-		}
-		
-		#endif
-	}
-	if (gpio_get_pin_interrupt_flag(QT1081_TOUCH_SENSOR_UP))
-	{
-				gpio_clear_pin_interrupt_flag(QT1081_TOUCH_SENSOR_UP);
-				
-				
-				if (actividad==2)//cronometro
-				{
-					resetTimer=1;
-				}
-				
-				if (actividad != 2)
-				{
-					actividad = 2; //te lleva al cronometro
-					CLR_disp();
-				}
-				
-				
-				
-				#if PRACTICA == 2
-				
-				//LastRectY=RectY;
-				if (actividad==0)
-				{
-					while(gpio_get_pin_value(QT1081_TOUCH_SENSOR_UP)){
-						et024006_DrawFilledRect(RectX , RectY, 30, 30, BLACK);//borra la posicion pasada
-						RectY+=2;
-						et024006_DrawFilledRect(RectX , RectY, 30, 30, RED);
-						delay_ms(10);
-						
-						
-					}
-					
-				}
-				#endif
-		     
-			  
-	}
-	
-	if (gpio_get_pin_interrupt_flag(QT1081_TOUCH_SENSOR_DOWN))
-	{
-		gpio_clear_pin_interrupt_flag(QT1081_TOUCH_SENSOR_DOWN);
-		if (actividad !=0)
-		{
-			actividad = 0; //te lleva al pong
-			CLR_disp();
-		}
-		
-		
-		
-		#if PRACTICA == 2
-		//LastRectY=RectY;
-		if (actividad==0)
-		{
-			while(gpio_get_pin_value(QT1081_TOUCH_SENSOR_DOWN)){
-				
-				et024006_DrawFilledRect(RectX , RectY, 30, 30, BLACK);//borra la posicion pasada
-				RectY-=2;
-				et024006_DrawFilledRect(RectX , RectY, 30, 30, RED);
-				delay_ms(10);
-			}
-			
-		}
-		#endif
-		
-	}
-	
-	if (gpio_get_pin_interrupt_flag (QT1081_TOUCH_SENSOR_ENTER))
-	{
-		
-		gpio_clear_pin_interrupt_flag(QT1081_TOUCH_SENSOR_ENTER);
-		//LastRectX=RectX;
-		#if PRACTICA == 2
-		enter=0;
-		#endif
-		if (actividad==2)
-		{
-			go^=(1<<0);//toggle al go del cronometro
-		}
-		
-		if (actividad==1)
-		{
-			enter^=(1<<0);
-		}
-		
-		
-	}
-	
-	
-
-}
-
-
 
 static void tft_bl_init(void)
 {
@@ -267,20 +98,10 @@ static void tft_bl_init(void)
   pwm_start_channels(AVR32_PWM_ENA_CHID6_MASK);
 
 }
-#endif
-
-
-
-
-
 
 volatile U32 tc_tick = 0;
 
-volatile int segundos =0;
-volatile int minutos =0;
-volatile int horas=0;
 
-volatile int gana2=1;
 __attribute__((__interrupt__))
 static void pdca_int_handler_USART(void){
 	Disable_global_interrupt();
@@ -316,70 +137,7 @@ static void pdca_int_handler_SD(void)
 
   end_of_transfer = 1;
 }
-/*
-__attribute__((__interrupt__))
-static void uart_interrupt(void){
-	#define imagen1 80000
-	#define imagen2 80100
-	int c;
-	char cadena[20];
-	//Disable_global_interrupt();
-	
-	usart_read_char((&AVR32_USART0),&c);
-	
-	if (c=='1')
-	{
-		usart_get_line((&AVR32_USART0),&cadena[0]);
-		horas=atoi(cadena);
-	}
-	
-	
-	if (c=='2')
-	{
-		usart_get_line((&AVR32_USART0),&cadena[0]);
-		minutos=atoi(cadena);
-	}
-	
-	if (c=='3')
-	{
-		recibirImagen(imagen1);
-	}
-	
-	if (c=='4')
-	{
-		displayImage(imagen1);
-	}
-	
-	if (c=='5')
-	{
-		deleteImage(imagen1);
-	}
-	
-	
-	if (c=='6')
-	{
-		recibirImagen(imagen2);
-	}
-	
-	if (c=='7')
-	{
-		displayImage(imagen2);
-	}
-	
-	if (c=='8')
-	{
-		deleteImage(imagen2);
-	}
-	
-	
-	
-	//usart_write_line((&AVR32_USART0),cadena);
-	
-	
-	//Enable_global_interrupt();
-	
-} 
-*/
+
 __attribute__((__interrupt__))
 static void tc_irq(void)
 {
@@ -394,24 +152,6 @@ static void tc_irq(void)
   {		
 	   gpio_tgl_gpio_pin(LED0_GPIO);
 		  tc_tick =0;
-		  segundos++;
-		  if (segundos>=60)
-		  {
-			  segundos=0;
-			  minutos++;
-			  gana1=0;
-			  if (minutos>=60)
-			  {
-				  minutos=0;
-				  horas++;
-				  gana2=0;
-				  if (horas>=24)
-				  {
-					  horas=0;
-				  }
-			  }
-		  }  
-	 
   }
   
 
@@ -425,44 +165,7 @@ int main(void)
   
     // Set CPU and PBA clock
     pcl_switch_to_osc(PCL_OSC0, FOSC0, OSC0_STARTUP);
-  /*
-  static const gpio_map_t USART_GPIO_MAP =
-  {
-	  {EXAMPLE_USART_RX_PIN, EXAMPLE_USART_RX_FUNCTION},
-	  {EXAMPLE_USART_TX_PIN, EXAMPLE_USART_TX_FUNCTION}
-  };
-
-  // USART options.
-  static const usart_options_t USART_OPTIONS =
-  {
-	  .baudrate     = 57600,
-	  .charlength   = 8,
-	  .paritytype   = USART_NO_PARITY,
-	  .stopbits     = USART_1_STOPBIT,
-	  .channelmode  = USART_NORMAL_CHMODE
-  };
-
-  // Assign GPIO to USART.
-  gpio_enable_module(USART_GPIO_MAP,
-  sizeof(USART_GPIO_MAP) / sizeof(USART_GPIO_MAP[0]));
-
-  // Initialize USART in RS232 mode.
-  usart_init_rs232(EXAMPLE_USART, &USART_OPTIONS, FOSC0);
-
-  // Hello world!
-  //usart_write_line(EXAMPLE_USART, "Hello, this is the AVR UC3 MCU saying hello!\r\n");
-
-  // Press enter to continue.
-  //while (usart_get_echo_line(EXAMPLE_USART) == USART_FAILURE);  // Get and echo characters until end of line.
-
-  //usart_write_line(EXAMPLE_USART, "Goodbye.\r\n");
-  
-  
-  */
-  
-  //volatile avr32_tc_t *tc = EXAMPLE_TC;
-  //volatile avr32_tc_t *tc =  (&AVR32_TC);
-
+ 
 
   // Options for waveform genration.
   static const tc_waveform_opt_t WAVEFORM_OPT =
@@ -496,15 +199,12 @@ int main(void)
 	  .etrgs = 0,
 	  .ldrbs = 0,
 	  .ldras = 0,
-	  .cpcs  = 1,   // Habilitar interrupción por comparación con RC
+	  .cpcs  = 1,   // Habilitar interrupciÃ³n por comparaciÃ³n con RC
 	  .cpbs  = 0,
 	  .cpas  = 0,
 	  .lovrs = 0,
 	  .covfs = 0
   };
-
-
-
 
   gpio_enable_gpio_pin(LED0_GPIO);
   gpio_enable_gpio_pin(LED1_GPIO);
@@ -513,14 +213,11 @@ int main(void)
 
   et024006_Init( FOSC0, FOSC0 );
 
-#if BOARD == EVK1105
   /* PWM is fed by PBA bus clock which is by default the same
    * as the CPU speed. We set a 0 duty cycle and thus keep the
    * display black*/
   tft_bl_init();
-#elif BOARD == EVK1104 || BOARD == UC3C_EK
-  gpio_set_gpio_pin(ET024006DHU_BL_PIN);
-#endif
+
 
   // Clear the display i.e. make it black
   et024006_DrawFilledRect(0 , 0, ET024006_WIDTH, ET024006_HEIGHT, BLACK );
@@ -564,11 +261,8 @@ int main(void)
   // Initialize SD/MMC driver resources: GPIO, SPI and SD/MMC.
   sd_mmc_resources_init();
 
-  // Wait for a card to be inserted
-  //while (!sd_mmc_spi_mem_check());
- 
- 
- uint8_t hayClave=0;
+
+  uint8_t hayClave=0;
   uint32_t sector =10;
   char disp[50];
   char clave[7];
@@ -739,7 +433,7 @@ uint32_t debounce2( uint32_t GPIO_PIN ){//regresar se presiono el boton o no
 		if (gpio_get_pin_value(GPIO_PIN)==0){//Si ya se libero, es ruido, salir sin hacer nada
 			goto salir;
 		}
-		espera://espera a que suelte el botón
+		espera://espera a que suelte el botÃ³n
 		while (gpio_get_pin_value(GPIO_PIN)==1){}
 		delay_ms(10);
 		if (gpio_get_pin_value(GPIO_PIN)==1) {//si ya lo presiono otra vez , es ruido, regresa a esperar
