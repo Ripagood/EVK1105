@@ -4,6 +4,8 @@
 
 src\ASF\avr32\drivers\ebi\sdramc\sdramc.c
 
+src\config\lodepng.c
+
 src\NES1\apu.c
 
 src\NES1\cartridge.c

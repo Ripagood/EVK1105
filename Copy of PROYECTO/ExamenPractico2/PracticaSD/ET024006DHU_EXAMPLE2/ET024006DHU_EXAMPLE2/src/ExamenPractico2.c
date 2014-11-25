@@ -44,7 +44,10 @@ AjedrezRandom, AjedrezCrece by Juan Manuel
 #include "NES1\nes.h"
 #include "sdramc.h"
 #include "file.h"
+#include "flashc.h"
 #include "NES1\nes_type.h"
+
+#include "lodepng.h"
 
 
 
@@ -77,7 +80,8 @@ char msj[] = "A       TXT";
 char *ptr_msj = &msj[0];
 static char str_buff[40] = "A       TXT";
 
-
+#define FREQ 66000000 //80 MDIPS! 
+//#define FREQ 132000000
 #define  RGB(r,g,b) r<<11|g<<5|b 
 
 #  define EXAMPLE_USART                 (&AVR32_USART0)
@@ -97,10 +101,17 @@ static char str_buff[40] = "A       TXT";
 extern uint16_t pc;
  extern uint8_t sp, a, x, y, status;
 
+ #define PIXEL uint16_t
+ #define AVERAGE(a, b)   (PIXEL)( (a) == (b) ? (a) \
+ : (((a) & 0xf7dfU) + ((b) & 0xf7dfU)) >> 1 )
+void scale_by_denom(PIXEL *Target, PIXEL *Source, int SrcWidth, int SrcHeight,int denom);
+void lodepng_decode_display(unsigned char* table,size_t buffersize,int scale);
+
 
 
 extern uint8_t opcode;
 uint8_t readROM(uint16_t address);
+static void init_sys_clocks(void);
 #if BOARD == EVK1105
 #include "pwm.h"
 #include <string.h>
@@ -116,9 +127,13 @@ avr32_pwm_channel_t pwm_channel6 = {
   .cprd = 100
 };
 
+__attribute__((__section__(".bss_sdram")))
+NES nes;
+__attribute__((__section__(".bss_sdram")))
+char* imagen;
+__attribute__((__section__(".bss_sdram")))
+char* imagen1;
 
- __attribute__((__section__(".bss_sdram")))
- NES nes;
  
 __attribute__ ((__interrupt__)) void tecla_lrc_isr(void){//handler teclas left, right o center
 	
@@ -421,25 +436,7 @@ static void tc_irq(void)
   if (tc_tick>=1000)
   {		
 	   gpio_tgl_gpio_pin(LED0_GPIO);
-		  tc_tick =0;
-		  segundos++;
-		  if (segundos>=60)
-		  {
-			  segundos=0;
-			  minutos++;
-			  gana1=0;
-			  if (minutos>=60)
-			  {
-				  minutos=0;
-				  horas++;
-				  gana2=0;
-				  if (horas>=24)
-				  {
-					  horas=0;
-				  }
-			  }
-		  }  
-	 
+		  tc_tick=0;
   }
   
 
@@ -452,12 +449,12 @@ int main(void)
   U32 i;
   
     // Set CPU and PBA clock
-    pcl_switch_to_osc(PCL_OSC0, FOSC0, OSC0_STARTUP);
-  
+  //  pcl_switch_to_osc(PCL_OSC0, FOSC0, OSC0_STARTUP);
+  init_sys_clocks();
   //volatile avr32_tc_t *tc = EXAMPLE_TC;
   //volatile avr32_tc_t *tc =  (&AVR32_TC);
 
-
+/*
   // Options for waveform genration.
   static const tc_waveform_opt_t WAVEFORM_OPT =
   {
@@ -498,14 +495,15 @@ int main(void)
   };
 
 
-
+*/
 
   gpio_enable_gpio_pin(LED0_GPIO);
   gpio_enable_gpio_pin(LED1_GPIO);
   gpio_enable_gpio_pin(LED2_GPIO);
   gpio_enable_gpio_pin(LED3_GPIO);
 
-  et024006_Init( FOSC0, FOSC0 );
+ // et024006_Init( FOSC0, FOSC0 );
+  et024006_Init( FREQ, FREQ );
 
 #if BOARD == EVK1105
   /* PWM is fed by PBA bus clock which is by default the same
@@ -524,26 +522,26 @@ int main(void)
   Disable_global_interrupt();
 
   INTC_init_interrupts();
-  INTC_register_interrupt(&tc_irq, AVR32_TC_IRQ0, AVR32_INTC_INT0);
+ // INTC_register_interrupt(&tc_irq, AVR32_TC_IRQ0, AVR32_INTC_INT0);
   init_Usart_DMA_RX();
   init_SD_DMA_RX();
   
-  sdramc_init(FOSC0);
-
+  //sdramc_init(FOSC0);
+  sdramc_init(FREQ);
   Enable_global_interrupt();
   
-  tc_init_waveform(tc, &WAVEFORM_OPT);         // Initialize the timer/counter waveform.
+ // tc_init_waveform(tc, &WAVEFORM_OPT);         // Initialize the timer/counter waveform.
 
   // Set the compare triggers.
   // Remember TC counter is 16-bits, so counting second is not possible with fPBA = 12 MHz.
   // We configure it to count ms.
   // We want: (1/(fPBA/8)) * RC = 0.001 s, hence RC = (fPBA/8) / 1000 = 1500 to get an interrupt every 1 ms.
-  tc_write_rc(tc, TC_CHANNEL, 1500);            // Set RC value.
+  //tc_write_rc(tc, TC_CHANNEL, 1500);            // Set RC value.
 
-  tc_configure_interrupts(tc, TC_CHANNEL, &TC_INTERRUPT);
+ // tc_configure_interrupts(tc, TC_CHANNEL, &TC_INTERRUPT);
 
   // Start the timer/counter.
-  tc_start(tc, TC_CHANNEL);                    // And start the timer/counter.
+ // tc_start(tc, TC_CHANNEL);                    // And start the timer/counter.
   
 
 
@@ -601,18 +599,52 @@ int main(void)
 	  sprintf(mensaje,"%d",drives);
 	  et024006_PrintString(mensaje,(const unsigned char*)&FONT8x8,110,70,BLUE,-1);
   }
+  
+  
+   //Apply a filter for “*.png” files and display the all the files’ names.
+   //Muestra primer imagen .png
+  
+ 
+
+ 
+   
+   nav_filterlist_setfilter("png");
+   nav_filterlist_root();
+    nav_filterlist_goto(0);
+    nav_file_getname((FS_STRING) str_buff, 40);
+	uint32_t size1= nav_file_lgt(); //tamaño de la imagen a cargar
+	file_bof();
+	file_open(FOPEN_MODE_R);
+	imagen=(char*)malloc(size1);
+	file_read_buf(imagen,size1);
+	lodepng_decode_display((unsigned char *)imagen,size1,1);//decodifca la PNG
+	file_close();
+	
+	nav_filterlist_goto(1);
+	nav_file_getname((FS_STRING) str_buff, 40);
+	uint32_t size2= nav_file_lgt(); //tamaño de la imagen a cargar
+	file_bof();
+	file_open(FOPEN_MODE_R);
+	imagen1=(char*)malloc(size2);
+	file_read_buf(imagen1,size2);
+	file_close();
+
 
   //Apply a filter for “*.txt” files and display number of files with this file extension
   int wave = nav_filterlist_nb(FL_FILE,"nes");
-  
-  et024006_DrawFilledRect(0,0,320,240,BLACK);
-  int l=0;
-  //Apply a filter for “*.bmp” files and display the all the files’ names.
   nav_filterlist_setfilter("nes");
+  
+  
+   
+  
+  
+  //et024006_DrawFilledRect(0,0,320,240,BLACK);
+  int l=0;
+ 
 
   nav_filterlist_root();
-
-  for(i=0;i<=wave;i++)
+//soccer , donkey , test , mario
+  for(i=0;i<wave;i++)
   {
 	  nav_filterlist_goto(i);
 	  if(nav_file_getname((FS_STRING) str_buff, 40))
@@ -620,9 +652,60 @@ int main(void)
   }
   
   
+  while (!gpio_get_pin_value(QT1081_TOUCH_SENSOR_ENTER))
+  {
+	  
+	  if (debounce2(QT1081_TOUCH_SENSOR_UP))
+	  {
+		  CLR_disp();
+		  lodepng_decode_display((unsigned char *)imagen,size1,2);//decodifca la PNG
+		  nav_filterlist_goto(0);
+		  if(nav_file_getname((FS_STRING) str_buff, 40))
+		  et024006_PrintString(str_buff,(const unsigned char*)&FONT8x8,40,80,RED,-1);
+	  }
+	  
+	   if (debounce2(QT1081_TOUCH_SENSOR_DOWN))
+	   {
+		   CLR_disp();
+		   lodepng_decode_display((unsigned char *)imagen1,size2,1);//decodifca la PNG
+		   nav_filterlist_goto(1);
+		   if(nav_file_getname((FS_STRING) str_buff, 40))
+		   et024006_PrintString(str_buff,(const unsigned char*)&FONT8x8,40,80,RED,-1);
+	   }
+	    if (debounce2(QT1081_TOUCH_SENSOR_RIGHT))
+	    {
+		    CLR_disp();
+			lodepng_decode_display((unsigned char *)imagen1,size2,1);//decodifca la PNG
+		    nav_filterlist_goto(2);
+		    if(nav_file_getname((FS_STRING) str_buff, 40))
+		    et024006_PrintString(str_buff,(const unsigned char*)&FONT8x8,40,80,RED,-1);
+	    }
+		 if (debounce2(QT1081_TOUCH_SENSOR_LEFT))
+		 {
+			 CLR_disp();
+			 lodepng_decode_display((unsigned char *)imagen,size1,2);//decodifca la PNG
+			 nav_filterlist_goto(3);
+			 if(nav_file_getname((FS_STRING) str_buff, 40))
+			 et024006_PrintString(str_buff,(const unsigned char*)&FONT8x8,40,80,RED,-1);
+		 }
+	  
+	  
+	  
+  }
+  
+  free(imagen);
+  free(imagen1);
+
+  
+  
+  
+  
  //while (!gpio_get_pin_value(QT1081_TOUCH_SENSOR_ENTER));
  char z;
- 
+ /*
+ nav_filterlist_goto(2);
+ nav_file_getname((FS_STRING) str_buff, 40);
+ */
  usart_write_char(&AVR32_USART0,'d');
  
 //  nav_filterlist_goto(0); //primer archivo, megaman.nes
@@ -655,7 +738,7 @@ usart_write_char(&AVR32_USART0,fs_g_status);
   usart_write_line(&AVR32_USART0,mensaje);
   
   */
- int filename =2;
+ int filename =3;
  #define DEFAULT_RESOLUTION_WIDTH 256
  #define DEFAULT_RESOLUTION_HEIGHT 240
  int width = DEFAULT_RESOLUTION_WIDTH;
@@ -950,7 +1033,8 @@ static void sd_mmc_resources_init(void)
 	spi_enable(SD_MMC_SPI);
 
 	// Initialize SD/MMC driver with SPI clock (PBA).
-	sd_mmc_spi_init(spiOptions, PBA_HZ);
+	//sd_mmc_spi_init(spiOptions, PBA_HZ);
+	sd_mmc_spi_init(spiOptions, FREQ);
 }
 
 
@@ -993,7 +1077,8 @@ void init_Usart_DMA_RX(void){
 			sizeof(usart_gpio_map) / sizeof(usart_gpio_map[0]));
 
 	/* Initialize the USART in RS232 mode. */
-	usart_init_rs232(EXAMPLE_USART, &usart_options,FOSC0);
+	//usart_init_rs232(EXAMPLE_USART, &usart_options,FOSC0);
+	usart_init_rs232(EXAMPLE_USART, &usart_options,FREQ);
 
 	//usart_write_line(EXAMPLE_USART, "PDCA Example.\r\n");
 
@@ -1071,5 +1156,199 @@ void wait(void)
 }
 
 
+static void init_sys_clocks(void)
+{
+	// Switch to OSC0 to speed up the booting
+	pm_switch_to_osc0(&AVR32_PM, FOSC0, OSC0_STARTUP);
 
+	
+	// Set PLL0 (fed from OSC0 = 12 MHz) to 132 MHz
+	// We use OSC1 since we need a correct master clock for the SSC module to generate
+	// the correct sample rate
+	pm_pll_setup(&AVR32_PM, 0,  // pll.
+	10,  // mul.
+	1,   // div.
+	0,   // osc.
+	16); // lockcount.
+
+	// Set PLL operating range and divider (fpll = fvco/2)
+	// -> PLL0 output = 66 MHz
+	pm_pll_set_option(&AVR32_PM, 0, // pll.
+	1,  // pll_freq.
+	1,  // pll_div2.
+	0); // pll_wbwdisable.
+
+	// start PLL0 and wait for the lock
+	pm_pll_enable(&AVR32_PM, 0);
+	pm_wait_for_pll0_locked(&AVR32_PM);
+	// Set all peripheral clocks torun at master clock rate
+	pm_cksel(&AVR32_PM,
+	0,   // pbadiv.
+	0,   // pbasel.
+	0,   // pbbdiv.
+	0,   // pbbsel.
+	0,   // hsbdiv.
+	0);  // hsbsel.
+
+	// Set one waitstate for the flash
+	flashc_set_wait_state(1);
+
+	// Switch to PLL0 as the master clock
+	pm_switch_to_clock(&AVR32_PM, AVR32_PM_MCCTRL_MCSEL_PLL0);
+
+}
+
+
+/*
+  * \brief lodepng_decode_display function : This function initialise the
+  * PNG decoder, decodes the .PNG image and display it on ET024006 display device
+  * with various scaling factors.
+  */
+ 
+ void lodepng_decode_display(unsigned char* table,size_t buffersize,int scale)
+ {
+     unsigned char* image;
+     uint8_t r,g,b;
+     size_t  imagesize;
+     LodePNG_Decoder decoder;
+     unsigned int i,j;
+     uint16_t color;
+     uint16_t* temp16;
+ 
+     LodePNG_Decoder_init(&decoder);
+     //decode the png
+     LodePNG_decode(&decoder, &image, &imagesize, table, buffersize);
+     usart_write_line(&AVR32_USART0,"Decoding completed \r\n");
+ 
+     /* if there's an error, display it, otherwise display
+      * information about the image
+      */
+     if(decoder.error) {
+         usart_write_line(&AVR32_USART0,"error: Decoding\r\n");
+         return;
+     }
+     else {
+ #if (defined __GNUC__)
+         usart_write_line(&AVR32_USART0,"Decoding Successful\r\n");
+ #elif (defined __ICCAVR32__)
+         printf("w: %d\n", decoder.infoPng.width);
+         printf("h: %d\n", decoder.infoPng.height);
+         printf("bitDepth: %d\n", decoder.infoPng.color.bitDepth);
+         printf("bpp: %d\n", LodePNG_InfoColor_getBpp(&decoder.infoPng.color));
+         printf("colorChannels: %d\n", LodePNG_InfoColor_getChannels(
+             &decoder.infoPng.color));
+         printf("paletteSize: %d\n", decoder.infoPng.color.palettesize);
+         printf("colorType: %d\n", decoder.infoPng.color.colorType);
+         printf("compressionMethod: %d\n", decoder.infoPng.compressionMethod);
+         printf("filterMethod: %d\n", decoder.infoPng.filterMethod);
+         printf("interlaceMethod: %d\n", decoder.infoPng.interlaceMethod);
+         for(i = 0; i < decoder.infoPng.text.num; i++)
+         printf("%s: %s\n",  decoder.infoPng.text.keys[i],
+             decoder.infoPng.text.strings[i]);
+         for(i = 0; i < decoder.infoPng.itext.num; i++)
+         printf("%s (%s %s) : %s\n",  decoder.infoPng.itext.keys[i],
+             decoder.infoPng.itext.langtags[i], decoder.infoPng.itext.transkeys[i],
+             decoder.infoPng.itext.strings[i]);
+ 
+         if(decoder.infoPng.time_defined) {
+             printf("modification time: %d-%d-%d %d:%d:%d\n",
+                 decoder.infoPng.time.year, decoder.infoPng.time.month,
+                 decoder.infoPng.time.day, decoder.infoPng.time.hour,
+                 decoder.infoPng.time.minute, decoder.infoPng.time.second);
+         }
+ 
+         if(decoder.infoPng.phys_defined) {
+             printf("physical size: %d %d %d\n", decoder.infoPng.phys_x,
+                 decoder.infoPng.phys_y, (int)decoder.infoPng.phys_unit);
+         }
+ #endif
+ 
+     }
+    usart_write_line(&AVR32_USART0,"sending to display\r\n");
+ 
+     // changing to 16-bit 565
+     temp16 = (uint16_t *) image;
+     for(i=0,j=0;i<(decoder.infoPng.width*decoder.infoPng.height*4);i=i+4,j++) {
+         r= (uint8_t)*(image+i);
+         g = (uint8_t)*(image+i+1);
+         b = (uint8_t)*(image+i+2);
+         color = et024006_Color(r,g,b);
+         temp16[j] = color;
+     }
+ 
+     //call scaling if required -supports only 1/2,1/4,1/8
+     if(scale>1) {
+         scale_by_denom(temp16,temp16,320,240,scale);
+     }
+ 
+     et024006_DrawFilledRect(0,0,ET024006_WIDTH,ET024006_HEIGHT,0x2458 );
+ 
+     usart_write_line(&AVR32_USART0,"sending to display\r\n");
+     et024006_PutPixmap( (uint16_t *)temp16, 320/scale, 0, 0, 0, 0, 320/scale,
+         240/scale );
+     free(image);
+ 
+     // cleanup decoder
+     LodePNG_Decoder_cleanup(&decoder);
+     return;
+ }
+
+ 
+ 
+ 
+ // supports scaling by 2,4,8 in denominator to 1
+ void scale_by_denom(PIXEL *Target, PIXEL *Source, int SrcWidth,
+     int SrcHeight,int denom)
+ {
+     int x, y, x2, y2;
+     int TgtWidth, TgtHeight;
+     PIXEL p,p1,q,q1,r,r1,s,s1;
+ 
+     TgtWidth = SrcWidth / denom;
+     TgtHeight = SrcHeight / denom;
+ 
+     // Box filter method
+     for (y = 0; y < TgtHeight; y++) {
+         y2 = denom * y;
+         for (x = 0; x < TgtWidth; x++) {
+             x2 = denom * x;
+             p = AVERAGE(Source[y2*SrcWidth + x2], Source[y2*SrcWidth +
+                 x2 + 1]);
+             q = AVERAGE(Source[(y2+1)*SrcWidth + x2], Source[(y2+1)*SrcWidth +
+                 x2 + 1]);
+ 
+             if (denom==4) {
+                 r = AVERAGE(Source[(y2+2)*SrcWidth + x2],
+                     Source[(y2+2)*SrcWidth + x2 + 1]);
+                 s = AVERAGE(Source[(y2+3)*SrcWidth + x2],
+                     Source[(y2+3)*SrcWidth + x2 + 1]);
+                 p = AVERAGE(p,r);
+                 q = AVERAGE(q,s);
+             }
+             else if(denom==8) {
+                 r = AVERAGE(Source[(y2+2)*SrcWidth + x2],
+                     Source[(y2+2)*SrcWidth + x2 + 1]);
+                 s = AVERAGE(Source[(y2+3)*SrcWidth + x2],
+                     Source[(y2+3)*SrcWidth + x2 + 1]);
+                 p = AVERAGE(p,r);
+                 q = AVERAGE(q,s);
+                 p1 = AVERAGE(Source[(y2+4)*SrcWidth + x2],
+                     Source[(y2+4)*SrcWidth + x2 + 1]);
+                 q1 = AVERAGE(Source[(y2+5)*SrcWidth + x2],
+                     Source[(y2+5)*SrcWidth + x2 + 1]);
+                 r1 = AVERAGE(Source[(y2+6)*SrcWidth + x2],
+                     Source[(y2+6)*SrcWidth + x2 + 1]);
+                 s1 = AVERAGE(Source[(y2+7)*SrcWidth + x2],
+                     Source[(y2+7)*SrcWidth + x2 + 1]);
+                 p1 = AVERAGE(p1,r1);
+                 q1 = AVERAGE(q1,s1);
+                 p =  AVERAGE(p,p1);
+                 q = AVERAGE(q,q1);
+             }
+             Target[y*TgtWidth + x] = AVERAGE(p, q);
+         } // for
+     } // for
+ }
+
+ 
 

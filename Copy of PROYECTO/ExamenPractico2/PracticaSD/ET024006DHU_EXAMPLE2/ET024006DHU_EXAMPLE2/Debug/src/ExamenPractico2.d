@@ -99,10 +99,12 @@ src/ExamenPractico2.d src/ExamenPractico2.o src/ExamenPractico2.o: \
  ../src/NES1\/gui.h ../src/NES1\/gui_type.h ../src/NES1\/globals.h \
  ../src/NES1\/joypad_type.h ../src/ASF/avr32/drivers/ebi/sdramc/sdramc.h \
  ../src/ASF/avr32/components/memory/sdram/mt48lc16m16a2tg7e/mt48lc16m16a2tg7e.h \
- ../src/ASF/avr32/services/fs/fat/file.h ../src/NES1\nes_type.h \
- ../src/dummy.h ../src/ASF/avr32/drivers/pwm/pwm.h \
+ ../src/ASF/avr32/services/fs/fat/file.h \
+ ../src/ASF/avr32/drivers/flashc/flashc.h ../src/NES1\nes_type.h \
+ ../src/config/lodepng.h \
  c:\program\ files\atmel\atmel\ toolchain\avr32\ gcc\native\3.4.1057\avr32-gnu-toolchain\bin\../lib/gcc/avr32/4.4.7/../../../../avr32/include/string.h \
- c:\program\ files\atmel\atmel\ toolchain\avr32\ gcc\native\3.4.1057\avr32-gnu-toolchain\bin\../lib/gcc/avr32/4.4.7/../../../../avr32/include/sys/string.h
+ c:\program\ files\atmel\atmel\ toolchain\avr32\ gcc\native\3.4.1057\avr32-gnu-toolchain\bin\../lib/gcc/avr32/4.4.7/../../../../avr32/include/sys/string.h \
+ ../src/dummy.h ../src/ASF/avr32/drivers/pwm/pwm.h
 
 ../src/ASF/common/boards/board.h:
 
@@ -336,12 +338,16 @@ c:\program\ files\atmel\atmel\ toolchain\avr32\ gcc\native\3.4.1057\avr32-gnu-to
 
 ../src/ASF/avr32/services/fs/fat/file.h:
 
+../src/ASF/avr32/drivers/flashc/flashc.h:
+
 ../src/NES1\nes_type.h:
 
-../src/dummy.h:
-
-../src/ASF/avr32/drivers/pwm/pwm.h:
+../src/config/lodepng.h:
 
 c:\program\ files\atmel\atmel\ toolchain\avr32\ gcc\native\3.4.1057\avr32-gnu-toolchain\bin\../lib/gcc/avr32/4.4.7/../../../../avr32/include/string.h:
 
 c:\program\ files\atmel\atmel\ toolchain\avr32\ gcc\native\3.4.1057\avr32-gnu-toolchain\bin\../lib/gcc/avr32/4.4.7/../../../../avr32/include/sys/string.h:
+
+../src/dummy.h:
+
+../src/ASF/avr32/drivers/pwm/pwm.h:

@@ -33,6 +33,7 @@ struct cartridge {
   Byte title[MAX_TITLE_BYTES];
 };
 void cartridge_print(Cartridge cartridge1) {
+	/*
   assert(cartridge1 != NULL);
   debug_printf("\n");
   debug_printf("Cartridge details:\n");
@@ -43,7 +44,7 @@ void cartridge_print(Cartridge cartridge1) {
   debug_printf(" hasTrainer: %d\n", cartridge1->hasTrainer);
   debug_printf(" mmuNumber: %d\n", cartridge1->mmuNumber);
   debug_printf(" numRamkBanks: %d\n", cartridge1->numRamBanks);
-  debug_printf(" title: %s\n", cartridge1->title);
+  debug_printf(" title: %s\n", cartridge1->title);*/
 }
 typedef struct header *Header;
 struct  header {
@@ -95,19 +96,19 @@ sprintf(mensaje,"%c",header1->magicLabel[2]);
 
 
 Byte cartridge_getNumProgramBanks(Cartridge cartridge1) {
-  assert(cartridge1 != NULL);
+//  assert(cartridge1 != NULL);
   return cartridge1->numProgramBanks;
 }
-Byte cartridge_readProgramBank(Cartridge cartridge1, Byte bank, Address address) {
+inline Byte cartridge_readProgramBank(Cartridge cartridge1, Byte bank, Address address) {
  // assert(cartridge1 != NULL);
  // assert(bank < cartridge1->numProgramBanks);
 //  assert(address < BYTES_PER_PROGRAM_BANK);
   return cartridge1->programBanks[bank]->bytes[address];
 }
-Byte cartridge_readCharacterBank(Cartridge cartridge1, Byte bank, Address address) {
-  assert(cartridge1 != NULL);
-  assert(bank < cartridge1->numCharacterBanks);
-  assert(address < BYTES_PER_CHARACTER_BANK);
+inline Byte cartridge_readCharacterBank(Cartridge cartridge1, Byte bank, Address address) {
+ // assert(cartridge1 != NULL);
+  //assert(bank < cartridge1->numCharacterBanks);
+  //assert(address < BYTES_PER_CHARACTER_BANK);
   return cartridge1->characterBanks[bank]->bytes[address];
 }
 //static void parseHeader(Cartridge cartridge, FILE *file) {
@@ -224,7 +225,7 @@ static void parseCharacterBanks(Cartridge cartridge1) {
 }
 
 static void parseTitle(Cartridge cartridge1) {
-  assert(cartridge1 != NULL);
+ // assert(cartridge1 != NULL);
   //fread(cartridge->title, sizeof(Byte), 128, file);
 }
 Cartridge cartridge_init( int filename) {
@@ -268,16 +269,16 @@ void cartridge_destroy(Cartridge cartridge1) {
   free(cartridge1);
 }
 Byte cartridge_getMMUNumber(Cartridge cartridge1) {
-  assert(cartridge1 != NULL);
+ // assert(cartridge1 != NULL);
   return cartridge1->mmuNumber;
 }
 Byte cartridge_getNumCharacterBanks(Cartridge cartridge1) {
-  assert(cartridge1 != NULL);
+ // assert(cartridge1 != NULL);
   return cartridge1->numCharacterBanks;
 }
 
 MirrorType cartridge_getMirrorType(Cartridge cartridge1) {
-  assert(cartridge1 != NULL);
+ // assert(cartridge1 != NULL);
   return (cartridge1->mirrorType);
 }
 

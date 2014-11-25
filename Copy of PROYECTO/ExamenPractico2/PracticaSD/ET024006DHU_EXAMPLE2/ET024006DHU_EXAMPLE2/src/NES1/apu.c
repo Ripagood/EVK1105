@@ -54,7 +54,7 @@ void apu_destroy(APU apu) {
   free(apu);
 }
 void apu_step(NES nes) {
-  assert(nes != NULL);
+  //assert(nes != NULL);
   // not implemented
   // debug_printf("apu_step\n");
 }

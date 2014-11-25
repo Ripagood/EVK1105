@@ -67,7 +67,10 @@ src/NES1/gui.d src/NES1/gui.o src/NES1/gui.o: ../src/NES1/gui.c \
  c:\program\ files\atmel\atmel\ toolchain\avr32\ gcc\native\3.4.1057\avr32-gnu-toolchain\bin\../lib/gcc/avr32/4.4.7/../../../../avr32/include/string.h \
  c:\program\ files\atmel\atmel\ toolchain\avr32\ gcc\native\3.4.1057\avr32-gnu-toolchain\bin\../lib/gcc/avr32/4.4.7/../../../../avr32/include/sys/string.h \
  ../src/NES1/joypad.h ../src/NES1/nes_type.h \
- ../src/ASF/avr32/components/display/et024006dhu/et024006dhu.h
+ ../src/ASF/avr32/components/display/et024006dhu/et024006dhu.h \
+ ../src/ASF/avr32/drivers/gpio/gpio.h \
+ ../src/ASF/avr32/boards/evk1105/evk1105.h \
+ ../src/ASF/avr32/boards/evk1105/led.h
 
 c:\program\ files\atmel\atmel\ toolchain\avr32\ gcc\native\3.4.1057\avr32-gnu-toolchain\bin\../lib/gcc/avr32/4.4.7/../../../../avr32/include/stdio.h:
 
@@ -212,3 +215,9 @@ c:\program\ files\atmel\atmel\ toolchain\avr32\ gcc\native\3.4.1057\avr32-gnu-to
 ../src/NES1/nes_type.h:
 
 ../src/ASF/avr32/components/display/et024006dhu/et024006dhu.h:
+
+../src/ASF/avr32/drivers/gpio/gpio.h:
+
+../src/ASF/avr32/boards/evk1105/evk1105.h:
+
+../src/ASF/avr32/boards/evk1105/led.h:

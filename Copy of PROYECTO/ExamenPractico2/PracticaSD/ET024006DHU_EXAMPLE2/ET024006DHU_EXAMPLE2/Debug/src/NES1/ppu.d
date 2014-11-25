@@ -68,7 +68,10 @@ src/NES1/ppu.d src/NES1/ppu.o src/NES1/ppu.o: ../src/NES1/ppu.c \
  ../src/NES1/cartridge_type.h ../src/NES1/interrupts_type.h \
  ../src/NES1/apu_type.h ../src/NES1/gui.h ../src/NES1/gui_type.h \
  ../src/NES1/joypad_type.h ../src/NES1/ppuMemory.h ../src/NES1/colour.h \
- ../src/NES1/colour_type.h ../src/NES1/objectAttributeMemory.h
+ ../src/NES1/colour_type.h ../src/NES1/objectAttributeMemory.h \
+ ../src/ASF/avr32/drivers/gpio/gpio.h \
+ c:\program\ files\atmel\atmel\ toolchain\avr32\ gcc\native\3.4.1057\avr32-gnu-toolchain\bin\../lib/gcc/avr32/4.4.7/../../../../avr32/include/string.h \
+ c:\program\ files\atmel\atmel\ toolchain\avr32\ gcc\native\3.4.1057\avr32-gnu-toolchain\bin\../lib/gcc/avr32/4.4.7/../../../../avr32/include/sys/string.h
 
 c:\program\ files\atmel\atmel\ toolchain\avr32\ gcc\native\3.4.1057\avr32-gnu-toolchain\bin\../lib/gcc/avr32/4.4.7/../../../../avr32/include/stdio.h:
 
@@ -229,3 +232,9 @@ c:\program\ files\atmel\atmel\ toolchain\avr32\ gcc\native\3.4.1057\avr32-gnu-to
 ../src/NES1/colour_type.h:
 
 ../src/NES1/objectAttributeMemory.h:
+
+../src/ASF/avr32/drivers/gpio/gpio.h:
+
+c:\program\ files\atmel\atmel\ toolchain\avr32\ gcc\native\3.4.1057\avr32-gnu-toolchain\bin\../lib/gcc/avr32/4.4.7/../../../../avr32/include/string.h:
+
+c:\program\ files\atmel\atmel\ toolchain\avr32\ gcc\native\3.4.1057\avr32-gnu-toolchain\bin\../lib/gcc/avr32/4.4.7/../../../../avr32/include/sys/string.h:

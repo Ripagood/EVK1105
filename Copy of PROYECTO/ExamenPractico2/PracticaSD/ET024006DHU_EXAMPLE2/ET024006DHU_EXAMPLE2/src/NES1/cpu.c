@@ -8,6 +8,7 @@
 #include "cpuMemory.h"
 #include "usart.h"
 #include "cpu.h"
+#include "gpio.h"
 // many comments below are based on operational details fromhttp://www.obelisk.demon.co.uk/6502/
 struct cpu {
 	Address programCounter;
@@ -80,15 +81,15 @@ void cpu_setIndexY(CPU cpu1, Byte indexY) {
 	//assert(cpu1 != NULL);
 	cpu1->indexY = indexY;
 }
-void cpu_setAccumulator(CPU cpu1, Byte accumulator) {
+void inline cpu_setAccumulator(CPU cpu1, Byte accumulator) {
 	//assert(cpu1 != NULL);
 	cpu1->accumulator = accumulator;
 }
-static void cpu_increaseProgramCounter(CPU cpu1) {
+static inline void cpu_increaseProgramCounter(CPU cpu1) {
 	//assert(cpu1 != NULL);
 	cpu1->programCounter++;
 }
-static void cpu_JMP(NES nes, Address address) {
+static inline void cpu_JMP(NES nes, Address address) {
 	//assert(nes != NULL);
 	CPU cpu1 = nes_getCPU(nes);
 	//assert(cpu1 != NULL);
@@ -103,7 +104,7 @@ static Bool cpu_getZero(CPU cpu1) {
 		return FALSE;
 	}
 }
-static void cpu_setZero(CPU cpu1, Bool state) {
+static inline void cpu_setZero(CPU cpu1, Bool state) {
 	//assert(cpu1 != NULL);
 	if (state == TRUE) {
 		cpu1->status |= MASK_STATUS_ZERO_ON;
@@ -112,7 +113,7 @@ static void cpu_setZero(CPU cpu1, Bool state) {
 	}
 }
 //Z     Zero Flag      Set if A = 0
-static void cpu_updateZero(CPU cpu1, Byte data) {
+static inline void cpu_updateZero(CPU cpu1, Byte data) {
 	//assert(cpu1 != NULL);
 	if (data == 0) {
 		cpu_setZero(cpu1, TRUE);
@@ -615,20 +616,20 @@ static void cpu_pushStack(NES nes, Byte data) {
 	CPU cpu1 = nes_getCPU(nes);
 	//assert(cpu1 != NULL);
 	Address stackAddress = GET_STACK_ADDRESS(cpu1->stackPointer);
-	VALIDATE_STACK_ADDRESS(stackAddress);
+	//VALIDATE_STACK_ADDRESS(stackAddress);
 	nes_writeCPUMemory(nes, stackAddress, data);
 	cpu1->stackPointer--;
-	VALIDATE_STACK_POINTER(cpu1->stackPointer);
+	//VALIDATE_STACK_POINTER(cpu1->stackPointer);
 }
 static Byte cpu_popStack(NES nes) {
 	//assert(nes != NULL);
 	CPU cpu1 = nes_getCPU(nes);
 	//assert(cpu1 != NULL);
-	VALIDATE_STACK_POINTER(cpu1->stackPointer);
+	//VALIDATE_STACK_POINTER(cpu1->stackPointer);
 	cpu1->stackPointer++;
-	VALIDATE_STACK_POINTER(cpu1->stackPointer);
+	//VALIDATE_STACK_POINTER(cpu1->stackPointer);
 	Address stackAddress = GET_STACK_ADDRESS(cpu1->stackPointer);
-	VALIDATE_STACK_ADDRESS(stackAddress);
+	//VALIDATE_STACK_ADDRESS(stackAddress);
 	Byte data = nes_readCPUMemory(nes, stackAddress);
 	return data;
 }
@@ -644,7 +645,7 @@ static void cpu_JSR(NES nes, Address address) {
 	// (and, as such, before it can increment the PC past this point).
 	// To compensate for this, the RTS opcode increments the program counter during its 6th instruction cycle.
 	// JSR takes 6 cycles, waste a cycle here
-	nes_cpuCycled(nes);
+	//nes_cpuCycled(nes);
 	Address returnAddress = cpu1->programCounter - 1;
 	cpu_pushStack(nes, GET_ADDRESS_HIGH_BYTE(returnAddress));
 	cpu_pushStack(nes, GET_ADDRESS_LOW_BYTE(returnAddress));
@@ -766,9 +767,9 @@ static Bool cpu_getBreak(CPU cpu1) {
 	}
 }
 void cpu_handleInterrupt(NES nes, Address handlerLowByte, Bool fromBRK) {
-	assert(nes != NULL);
+	//assert(nes != NULL);
 	CPU cpu1 = nes_getCPU(nes);
-	assert(cpu1 != NULL);
+	//assert(cpu1 != NULL);
 	usart_write_line(&AVR32_USART0,"handleInterrupt\n");
 	cpu_setInterruptDisable(cpu1, TRUE);
 	if (fromBRK == TRUE) {
@@ -813,11 +814,11 @@ static void cpu_RTS(NES nes) {
 	//assert(cpu1 != NULL);
 	//usart_write_line(&AVR32_USART0,"RTS\n");
 	// waste a cycle for the stack pointer increment that is about to happen in popStack
-	nes_cpuCycled(nes);
+	//nes_cpuCycled(nes);
 	Address address = cpu_popStack(nes);
 	address += cpu_popStack(nes) << BITS_PER_BYTE;
 	// waste a cycle to increment the program counter
-	nes_cpuCycled(nes);
+	//nes_cpuCycled(nes);
 	address++;
 	cpu1->programCounter = address;
 }
@@ -830,7 +831,7 @@ static void cpu_RTI(NES nes) {
 	//assert(cpu1 != NULL);
 	//usart_write_line(&AVR32_USART0,"RTI\n");
 	// waste a cycle for the initial stack pointer increment that is about to happen in popStack
-	nes_cpuCycled(nes);
+	//nes_cpuCycled(nes);
 	cpu1->status = cpu_popStack(nes);
 	// 1 at all times
 	cpu1->status |= MASK_BIT5;
@@ -862,7 +863,7 @@ static void cpu_PLP(NES nes) {
 	//assert(cpu1 != NULL);
 	//usart_write_line(&AVR32_USART0,"PLP\n");
 	// waste a cycle for the stack pointer increment that is about to happen in popStack
-	nes_cpuCycled(nes);
+	//nes_cpuCycled(nes);
 	Byte data = cpu_popStack(nes);
 	//printf("PLP 0x%x 0x%x\n", cpu1->status, data);
 	cpu1->status = data;
@@ -887,7 +888,7 @@ static void cpu_PLA(NES nes) {
 	//assert(cpu1 != NULL);
 	//usart_write_line(&AVR32_USART0,"PLA\n");
 	// waste a cycle for the stack pointer increment that is about to happen in popStack
-	nes_cpuCycled(nes);
+	//nes_cpuCycled(nes);
 	cpu1->accumulator = cpu_popStack(nes);
 	// Z Zero Flag       Set if A = 0
 	cpu_updateZero(cpu1, cpu1->accumulator);
@@ -1044,7 +1045,7 @@ static void cpu_BEQ(NES nes, Address address) {
 	SignedByte data = nes_readCPUMemory(nes, address);
 	if (cpu_getZero(cpu1) == TRUE) {
 		// +1 cycle if the branch succeeds
-		nes_cpuCycled(nes);
+		//nes_cpuCycled(nes);
 		cpu1->programCounter += data;
 	}
 }
@@ -1058,7 +1059,7 @@ static void cpu_BNE(NES nes, Address address) {
 	SignedByte data = nes_readCPUMemory(nes, address);
 	if (cpu_getZero(cpu1) == FALSE) {
 		// +1 cycle if the branch succeeds
-		nes_cpuCycled(nes);
+		//nes_cpuCycled(nes);
 		cpu1->programCounter += data;
 	}
 }
@@ -1072,7 +1073,7 @@ static void cpu_BMI(NES nes, Address address) {
 	SignedByte data = nes_readCPUMemory(nes, address);
 	if (cpu_getNegative(cpu1) == TRUE) {
 		// +1 cycle if the branch succeeds
-		nes_cpuCycled(nes);
+		//nes_cpuCycled(nes);
 		cpu1->programCounter += data;
 	}
 }
@@ -1086,7 +1087,7 @@ static void cpu_BPL(NES nes, Address address) {
 	SignedByte data = nes_readCPUMemory(nes, address);
 	if (cpu_getNegative(cpu1) == FALSE) {
 		// +1 cycle if the branch succeeds
-		nes_cpuCycled(nes);
+		//nes_cpuCycled(nes);
 		cpu1->programCounter += data;
 	}
 }
@@ -1100,7 +1101,7 @@ static void cpu_BCC(NES nes, Address address) {
 	SignedByte data = nes_readCPUMemory(nes, address);
 	if (cpu_getCarry(cpu1) == FALSE) {
 		// +1 cycle if the branch succeeds
-		nes_cpuCycled(nes);
+		//nes_cpuCycled(nes);
 		cpu1->programCounter += data;
 	}
 }
@@ -1114,7 +1115,7 @@ static void cpu_BCS(NES nes, Address address) {
 	SignedByte data = nes_readCPUMemory(nes, address);
 	if (cpu_getCarry(cpu1) == TRUE) {
 		// +1 cycle if the branch succeeds
-		nes_cpuCycled(nes);
+		//nes_cpuCycled(nes);
 		cpu1->programCounter += data;
 	}
 }
@@ -1128,7 +1129,7 @@ static void cpu_BVC(NES nes, Address address) {
 	SignedByte data = nes_readCPUMemory(nes, address);
 	if (cpu_getOverflow(cpu1) == FALSE) {
 		// +1 cycle if the branch succeeds
-		nes_cpuCycled(nes);
+		//nes_cpuCycled(nes);
 		cpu1->programCounter += data;
 	}
 }
@@ -1142,74 +1143,92 @@ static void cpu_BVS(NES nes, Address address) {
 	SignedByte data = nes_readCPUMemory(nes, address);
 	if (cpu_getOverflow(cpu1) == TRUE) {
 		// +1 cycle if the branch succeeds
-		nes_cpuCycled(nes);
+		//nes_cpuCycled(nes);
 		cpu1->programCounter += data;
 	}
 }
 void cpu_step(NES nes) {
 	//assert(nes != NULL);
 	//usart_write_line(&AVR32_USART0,"cpu_step\n");
+	//gpio_toggle_pin(60);
 	CPU cpu1 = nes_getCPU(nes);
 	//assert(cpu1 != NULL);
 	Byte instruction = nes_readCPUMemory(nes, cpu1->programCounter);
-	usart_write_char(&AVR32_USART0,instruction);
+	//usart_write_char(&AVR32_USART0,instruction);
 	cpu_increaseProgramCounter(cpu1);
 //	//usart_write_line(&AVR32_USART0,"Instruction: 0x%x\n", instruction);
 	Address address = 0;
+	
+	if (instruction==0x4C)
+	{
+		//usart_write_char(&AVR32_USART0,instruction);
+		uint16_t add1,add2;
+		add1 = nes_readCPUMemory(nes, cpu1->programCounter++);
+		//usart_write_char(&AVR32_USART0,add1);
+		add2= nes_readCPUMemory(nes, cpu1->programCounter);
+		//usart_write_char(&AVR32_USART0,add2);
+		cpu1->programCounter = ((add2 <<8)+add1);
+		return;
+	}
+	
+	
+	
 	switch(instruction) {
-		case LDA_IMM:
-		case LDX_IMM:
-		case LDY_IMM:
-		case AND_IMM:
-		case ORA_IMM:
-		case EOR_IMM:
-		case CMP_IMM:
-		case CPX_IMM:
-		case CPY_IMM:
-		case ADC_IMM:
-		case SBC_IMM:
+		case LDA_IMM: goto Immediate;
+		case LDX_IMM: goto Immediate;
+		case LDY_IMM: goto Immediate;
+		case AND_IMM: goto Immediate;
+		case ORA_IMM: goto Immediate;
+		case EOR_IMM: goto Immediate;
+		case CMP_IMM: goto Immediate;
+		case CPX_IMM: goto Immediate;
+		case CPY_IMM: goto Immediate;
+		case ADC_IMM: goto Immediate;
+		case SBC_IMM: 
+		Immediate:
 		address = cpu1->programCounter;
 		cpu_increaseProgramCounter(cpu1);
 		break;
-		case LDA_ZPAGE:
-		case STA_ZPAGE:
-		case LDX_ZPAGE:
-		case STX_ZPAGE:
-		case LDY_ZPAGE:
-		case STY_ZPAGE:
-		case AND_ZPAGE:
-		case ORA_ZPAGE:
-		case EOR_ZPAGE:
-		case BIT_ZPAGE:
-		case CMP_ZPAGE:
-		case CPX_ZPAGE:
-		case CPY_ZPAGE:
-		case ADC_ZPAGE:
-		case SBC_ZPAGE:
-		case ASL_ZPAGE:
-		case LSR_ZPAGE:
-		case ROL_ZPAGE:
-		case ROR_ZPAGE:
-		case INC_ZPAGE:
+		case LDA_ZPAGE:goto ZPAGE;
+		case STA_ZPAGE:goto ZPAGE;
+		case LDX_ZPAGE:goto ZPAGE;
+		case STX_ZPAGE:goto ZPAGE;
+		case LDY_ZPAGE:goto ZPAGE;
+		case STY_ZPAGE:goto ZPAGE;
+		case AND_ZPAGE:goto ZPAGE;
+		case ORA_ZPAGE:goto ZPAGE;
+		case EOR_ZPAGE:goto ZPAGE;
+		case BIT_ZPAGE:goto ZPAGE;
+		case CMP_ZPAGE:goto ZPAGE;
+		case CPX_ZPAGE:goto ZPAGE;
+		case CPY_ZPAGE:goto ZPAGE;
+		case ADC_ZPAGE:goto ZPAGE;
+		case SBC_ZPAGE:goto ZPAGE;
+		case ASL_ZPAGE:goto ZPAGE;
+		case LSR_ZPAGE:goto ZPAGE;
+		case ROL_ZPAGE:goto ZPAGE;
+		case ROR_ZPAGE:goto ZPAGE;
+		case INC_ZPAGE:goto ZPAGE;
 		case DEC_ZPAGE:
+		ZPAGE:
 		address = nes_readCPUMemory(nes, cpu1->programCounter);
 		cpu_increaseProgramCounter(cpu1);
 		break;
-		case LDA_ZPAGEX:
-		case STA_ZPAGEX:
-		case LDY_ZPAGEX:
-		case STY_ZPAGEX:
-		case AND_ZPAGEX:
-		case ORA_ZPAGEX:
-		case EOR_ZPAGEX:
-		case CMP_ZPAGEX:
-		case ADC_ZPAGEX:
-		case SBC_ZPAGEX:
-		case ASL_ZPAGEX:
-		case LSR_ZPAGEX:
-		case ROL_ZPAGEX:
-		case ROR_ZPAGEX:
-		case INC_ZPAGEX:
+		case LDA_ZPAGEX: goto ZPAGEX;
+		case STA_ZPAGEX:goto ZPAGEX;
+		case LDY_ZPAGEX:goto ZPAGEX;
+		case STY_ZPAGEX:goto ZPAGEX;
+		case AND_ZPAGEX:goto ZPAGEX;
+		case ORA_ZPAGEX:goto ZPAGEX;
+		case EOR_ZPAGEX:goto ZPAGEX;
+		case CMP_ZPAGEX:goto ZPAGEX;
+		case ADC_ZPAGEX:goto ZPAGEX;
+		case SBC_ZPAGEX:goto ZPAGEX;
+		case ASL_ZPAGEX:goto ZPAGEX;
+		case LSR_ZPAGEX:goto ZPAGEX;
+		case ROL_ZPAGEX:goto ZPAGEX;
+		case ROR_ZPAGEX:goto ZPAGEX;
+		case INC_ZPAGEX: ZPAGEX:
 		case DEC_ZPAGEX:
 		{
 			Byte data = nes_readCPUMemory(nes, cpu1->programCounter);
@@ -1218,49 +1237,49 @@ void cpu_step(NES nes) {
 			address = data;
 		}
 		break;
-		case LDA_ABS:
-		case STA_ABS:
-		case LDX_ABS:
-		case STX_ABS:
-		case LDY_ABS:
-		case STY_ABS:
-		case AND_ABS:
-		case ORA_ABS:
-		case EOR_ABS:
-		case BIT_ABS:
-		case CMP_ABS:
-		case CPX_ABS:
-		case CPY_ABS:
-		case ADC_ABS:
-		case SBC_ABS:
-		case ASL_ABS:
-		case LSR_ABS:
-		case ROL_ABS:
-		case ROR_ABS:
-		case INC_ABS:
-		case DEC_ABS:
-		case JSR_ABS:
-		case JMP_ABS:
+		case LDA_ABS: goto ABSOLUTE;
+		case STA_ABS:goto ABSOLUTE;
+		case LDX_ABS:goto ABSOLUTE;
+		case STX_ABS:goto ABSOLUTE;
+		case LDY_ABS:goto ABSOLUTE;
+		case STY_ABS:goto ABSOLUTE;
+		case AND_ABS:goto ABSOLUTE;
+		case ORA_ABS:goto ABSOLUTE;
+		case EOR_ABS:goto ABSOLUTE;
+		case BIT_ABS:goto ABSOLUTE;
+		case CMP_ABS:goto ABSOLUTE;
+		case CPX_ABS:goto ABSOLUTE;
+		case CPY_ABS:goto ABSOLUTE;
+		case ADC_ABS:goto ABSOLUTE;
+		case SBC_ABS:goto ABSOLUTE;
+		case ASL_ABS:goto ABSOLUTE;
+		case LSR_ABS:goto ABSOLUTE;
+		case ROL_ABS:goto ABSOLUTE;
+		case ROR_ABS:goto ABSOLUTE;
+		case INC_ABS:goto ABSOLUTE;
+		case DEC_ABS:goto ABSOLUTE;
+		case JSR_ABS:goto ABSOLUTE;
+		case JMP_ABS: ABSOLUTE:
 		address = nes_readCPUMemory(nes, cpu1->programCounter);
 		cpu_increaseProgramCounter(cpu1);
 		address += nes_readCPUMemory(nes, cpu1->programCounter) << BITS_PER_BYTE;
 		cpu_increaseProgramCounter(cpu1);
 		break;
-		case LDA_ABSX:
-		case STA_ABSX:
-		case LDY_ABSX:
-		case AND_ABSX:
-		case ORA_ABSX:
-		case EOR_ABSX:
-		case CMP_ABSX:
-		case ADC_ABSX:
-		case SBC_ABSX:
-		case ASL_ABSX:
-		case LSR_ABSX:
-		case ROL_ABSX:
-		case ROR_ABSX:
-		case INC_ABSX:
-		case DEC_ABSX:
+		case LDA_ABSX: goto ABSOLUTEX;
+		case STA_ABSX:goto ABSOLUTEX;
+		case LDY_ABSX:goto ABSOLUTEX;
+		case AND_ABSX:goto ABSOLUTEX;
+		case ORA_ABSX:goto ABSOLUTEX;
+		case EOR_ABSX:goto ABSOLUTEX;
+		case CMP_ABSX:goto ABSOLUTEX;
+		case ADC_ABSX:goto ABSOLUTEX;
+		case SBC_ABSX:goto ABSOLUTEX;
+		case ASL_ABSX:goto ABSOLUTEX;
+		case LSR_ABSX:goto ABSOLUTEX;
+		case ROL_ABSX:goto ABSOLUTEX;
+		case ROR_ABSX:goto ABSOLUTEX;
+		case INC_ABSX:goto ABSOLUTEX;
+		case DEC_ABSX: ABSOLUTEX:
 		address = nes_readCPUMemory(nes, cpu1->programCounter);
 		cpu_increaseProgramCounter(cpu1);
 		address += nes_readCPUMemory(nes, cpu1->programCounter) << BITS_PER_BYTE;
@@ -1332,7 +1351,7 @@ void cpu_step(NES nes) {
 		case ROL_ACCUM:
 		case ROR_ACCUM:
 		// these take 2 cycles. do a dummy read so that the ppu/apu get to advance
-		nes_cpuCycled(nes);
+		//nes_cpuCycled(nes);
 		break;
 		case JMP_INDIRECT_CODE1:
 		case JMP_INDIRECT_CODE2:
@@ -1350,33 +1369,33 @@ void cpu_step(NES nes) {
 			address += nes_readCPUMemory(nes, highAddress) << BITS_PER_BYTE;
 		}
 		break;
-		case BRK:
-		case RTS:
-		case RTI:
-		case PHP:
-		case PLP:
-		case PHA:
-		case PLA:
-		case INX:
-		case DEX:
-		case INY:
-		case DEY:
-		case TAX:
-		case TXA:
-		case TAY:
-		case TYA:
-		case TSX:
-		case TXS:
-		case SED:
-		case CLD:
-		case SEI:
-		case CLI:
-		case SEC:
-		case CLC:
-		case CLV:
+		case BRK: break;
+		case RTS:break;
+		case RTI:break;
+		case PHP:break;
+		case PLP:break;
+		case PHA:break;
+		case PLA:break;
+		case INX:break;
+		case DEX:break;
+		case INY:break;
+		case DEY:break;
+		case TAX:break;
+		case TXA:break;
+		case TAY:break;
+		case TYA:break;
+		case TSX:break;
+		case TXS:break;
+		case SED:break;
+		case CLD:break;
+		case SEI:break;
+		case CLI:break;
+		case SEC:break;
+		case CLC:break;
+		case CLV:break;
 		case NOP:
 		// these take 2+ cycles. do a dummy read so that the ppu/apu get to advance
-		nes_cpuCycled(nes);
+		//nes_cpuCycled(nes);
 		break;
 		case BEQ:
 		case BNE:
@@ -1396,41 +1415,41 @@ void cpu_step(NES nes) {
 		//assert(FALSE);
 	}
 	switch(instruction) {
-		case LDA_INDY:
-		case LDA_IMM:
-		case LDA_ZPAGE:
-		case LDA_ZPAGEX:
-		case LDA_ABS:
-		case LDA_ABSX:
-		case LDA_ABSY:
+		case LDA_INDY: cpu_LDA(nes, address); break;
+		case LDA_IMM:cpu_LDA(nes, address); break;
+		case LDA_ZPAGE:cpu_LDA(nes, address); break;
+		case LDA_ZPAGEX:cpu_LDA(nes, address); break;
+		case LDA_ABS:cpu_LDA(nes, address); break;
+		case LDA_ABSX:cpu_LDA(nes, address); break;
+		case LDA_ABSY:cpu_LDA(nes, address); break;
 		case LDA_INDX:
 		cpu_LDA(nes, address);
 		break;
-		case STA_INDY:
-		case STA_ZPAGE:
-		case STA_ZPAGEX:
-		case STA_ABS:
-		case STA_ABSX:
-		case STA_ABSY:
+		case STA_INDY: cpu_STA(nes, address); break;
+		case STA_ZPAGE:cpu_STA(nes, address); break;
+		case STA_ZPAGEX:cpu_STA(nes, address); break;
+		case STA_ABS:cpu_STA(nes, address); break;
+		case STA_ABSX:cpu_STA(nes, address); break;
+		case STA_ABSY:cpu_STA(nes, address); break;
 		case STA_INDX:
 		cpu_STA(nes, address);
 		break;
-		case LDX_IMM:
-		case LDX_ZPAGE:
-		case LDX_ABS:
-		case LDX_ABSY:
+		case LDX_IMM: cpu_LDX(nes, address); break;
+		case LDX_ZPAGE:  cpu_LDX(nes, address); break; 
+		case LDX_ABS: cpu_LDX(nes, address); break;
+		case LDX_ABSY: cpu_LDX(nes, address); break;
 		case LDX_ZPAGEY:
 		cpu_LDX(nes, address);
 		break;
-		case STX_ZPAGE:
-		case STX_ABS:
-		case STX_ZPAGEY:
+		case STX_ZPAGE: cpu_STX(nes, address); break;
+		case STX_ABS: cpu_STX(nes, address); break;
+		case STX_ZPAGEY: cpu_STX(nes, address); break;
 		cpu_STX(nes, address);
 		break;
-		case LDY_IMM:
-		case LDY_ZPAGE:
-		case LDY_ZPAGEX:
-		case LDY_ABS:
+		case LDY_IMM: cpu_LDY(nes, address); break;
+		case LDY_ZPAGE: cpu_LDY(nes, address); break;
+		case LDY_ZPAGEX: cpu_LDY(nes, address); break;
+		case LDY_ABS: cpu_LDY(nes, address); break;
 		case LDY_ABSX:
 		cpu_LDY(nes, address);
 		break;
@@ -1439,33 +1458,33 @@ void cpu_step(NES nes) {
 		case STY_ABS:
 		cpu_STY(nes, address);
 		break;
-		case AND_INDY:
-		case AND_IMM:
-		case AND_ZPAGE:
-		case AND_ZPAGEX:
-		case AND_ABS:
-		case AND_ABSX:
-		case AND_ABSY:
+		case AND_INDY: cpu_AND(nes, address); break;
+		case AND_IMM: cpu_AND(nes, address); break;
+		case AND_ZPAGE: cpu_AND(nes, address); break;
+		case AND_ZPAGEX: cpu_AND(nes, address); break;
+		case AND_ABS: cpu_AND(nes, address); break;
+		case AND_ABSX: cpu_AND(nes, address); break;
+		case AND_ABSY: cpu_AND(nes, address); break;
 		case AND_INDX:
 		cpu_AND(nes, address);
 		break;
-		case ORA_INDY:
-		case ORA_IMM:
-		case ORA_ZPAGE:
-		case ORA_ZPAGEX:
-		case ORA_ABS:
-		case ORA_ABSX:
-		case ORA_ABSY:
+		case ORA_INDY: cpu_ORA(nes, address); break;
+		case ORA_IMM: cpu_ORA(nes, address); break; 
+		case ORA_ZPAGE: cpu_ORA(nes, address); break; 
+		case ORA_ZPAGEX: cpu_ORA(nes, address); break;
+		case ORA_ABS: cpu_ORA(nes, address); break;
+		case ORA_ABSX: cpu_ORA(nes, address); break;
+		case ORA_ABSY: cpu_ORA(nes, address); break;
 		case ORA_INDX:
 		cpu_ORA(nes, address);
 		break;
-		case EOR_INDY:
-		case EOR_IMM:
-		case EOR_ZPAGE:
-		case EOR_ZPAGEX:
-		case EOR_ABS:
-		case EOR_ABSX:
-		case EOR_ABSY:
+		case EOR_INDY: cpu_EOR(nes, address); break;
+		case EOR_IMM:  cpu_EOR(nes, address); break;
+		case EOR_ZPAGE:  cpu_EOR(nes, address); break;
+		case EOR_ZPAGEX:  cpu_EOR(nes, address); break;
+		case EOR_ABS:  cpu_EOR(nes, address); break;
+		case EOR_ABSX:  cpu_EOR(nes, address); break;
+		case EOR_ABSY:  cpu_EOR(nes, address); break;
 		case EOR_INDX:
 		cpu_EOR(nes, address);
 		break;
@@ -1676,6 +1695,10 @@ void cpu_step(NES nes) {
 		//assert(FALSE);
 	}
 //	//usart_write_line(&AVR32_USART0,"Address: 0x%0x\n", address);
+/*
+usart_write_char(&AVR32_USART0,instruction);
+usart_write_char(&AVR32_USART0,address);
+usart_write_char(&AVR32_USART0,address>>8);*/
 }
 void cpu_tests(void) {
 	{

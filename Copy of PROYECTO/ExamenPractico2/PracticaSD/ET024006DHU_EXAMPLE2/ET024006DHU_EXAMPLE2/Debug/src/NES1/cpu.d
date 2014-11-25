@@ -68,7 +68,8 @@ src/NES1/cpu.d src/NES1/cpu.o src/NES1/cpu.o: ../src/NES1/cpu.c \
  ../src/NES1/interrupts_type.h ../src/NES1/apu_type.h ../src/NES1/gui.h \
  ../src/NES1/gui_type.h ../src/NES1/joypad_type.h \
  ../src/NES1/instructions.h ../src/NES1/cpuMemory.h \
- ../src/ASF/avr32/drivers/usart/usart.h ../src/NES1/cpu.h
+ ../src/ASF/avr32/drivers/usart/usart.h ../src/NES1/cpu.h \
+ ../src/ASF/avr32/drivers/gpio/gpio.h
 
 c:\program\ files\atmel\atmel\ toolchain\avr32\ gcc\native\3.4.1057\avr32-gnu-toolchain\bin\../lib/gcc/avr32/4.4.7/../../../../avr32/include/stdio.h:
 
@@ -227,3 +228,5 @@ c:\program\ files\atmel\atmel\ toolchain\avr32\ gcc\native\3.4.1057\avr32-gnu-to
 ../src/ASF/avr32/drivers/usart/usart.h:
 
 ../src/NES1/cpu.h:
+
+../src/ASF/avr32/drivers/gpio/gpio.h:

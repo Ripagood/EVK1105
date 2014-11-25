@@ -7,9 +7,13 @@
 #include <string.h>
 #include "joypad.h"
 #include "et024006dhu.h"
+#include "gpio.h"
+#include "evk1105.h"
 #define GUI_MAX_JOYPADS 4
 #define GUI_IMAGE_SCALE 2
 #define  RGB(r,g,b) r<<11|g<<5|b
+
+#define RGB2(r,g,b) RGB(r>>3,g>>2,b>>3)
 
 
 struct gui {
@@ -21,19 +25,20 @@ struct gui {
   Bool receivedTerminationRequest;
 };
 int gui_getWidth(GUI gui) {
-  assert(gui != NULL);
+//  assert(gui != NULL);
   return gui->width;
 }
 int gui_getHeight(GUI gui) {
-  assert(gui != NULL);
+  //assert(gui != NULL);
   return gui->height;
 }
-void gui_drawPixel(GUI gui, Byte x, Byte y, Byte red, Byte green, Byte blue) {
-  assert(gui != NULL);
+inline void gui_drawPixel(GUI gui, Byte x, Byte y, Byte red, Byte green, Byte blue) {
+  //assert(gui != NULL);
   //assert(gui->screen != NULL);
-  assert(x < gui->width);    // Byte type is unsigned
-  assert(y < gui->height);   // Byte type is unsigned
-  et024006_DrawQuickPixel(x,y,RGB(red,green,blue));
+ // assert(x < gui->width);    // Byte type is unsigned
+ // assert(y < gui->height);   // Byte type is unsigned
+ // et024006_DrawQuickPixel(x,y,RGB(red,green,blue));
+  et024006_DrawQuickPixel(x,y,RGB2(red,green,blue));
   //Uint32 color = SDL_MapRGB(gui->screen->format, red, green, blue);
   //assert(gui->screen->format->BytesPerPixel == 4);
   //Uint32 *bufp;
@@ -53,7 +58,7 @@ void gui_drawPixel(GUI gui, Byte x, Byte y, Byte red, Byte green, Byte blue) {
   *bufp = color;*/
 }
 void gui_refresh(GUI gui) {
-  assert(gui != NULL);
+ // assert(gui != NULL);
 //  assert(gui->screen != NULL);
   /*
   if (gui->currentFrame % 200 == 0) {
@@ -67,7 +72,7 @@ void gui_refresh(GUI gui) {
         //SDL_Delay(1000/60);
 }
 static void gui_resetButtonState(GUI gui) {
-  assert(gui != NULL);
+  //assert(gui != NULL);
   int joypad;
   for (joypad=0; joypad < GUI_MAX_JOYPADS; joypad++) {
     int button;
@@ -103,8 +108,8 @@ void gui_destroy(GUI gui) {
   free(gui);
 }
 void gui_queryInput(GUI gui) {
-  assert(gui != NULL);
-  //gui_resetButtonState(gui);
+ // assert(gui != NULL);
+  gui_resetButtonState(gui);
   //SDL_Event event;
   /*while ( SDL_PollEvent(&event) ) {
 if ( event.type == SDL_QUIT) {
@@ -169,12 +174,19 @@ if ( event.type == SDL_QUIT) {
     }
   }
   */
+  gui->buttonState[0][JOYPAD_BUTTON_START] = ( gpio_get_pin_value(QT1081_TOUCH_SENSOR_ENTER));
+  gui->buttonState[0][JOYPAD_BUTTON_SELECT] = (gpio_get_pin_value(QT1081_TOUCH_SENSOR_UP));
+   gui->buttonState[0][JOYPAD_BUTTON_RIGHT] = ( gpio_get_pin_value(QT1081_TOUCH_SENSOR_RIGHT));
+   gui->buttonState[0][JOYPAD_BUTTON_LEFT] = ( gpio_get_pin_value(QT1081_TOUCH_SENSOR_LEFT));
+  
+ 
+  
 }
 Bool gui_isButtonPressed(GUI gui, int joypad, Button button) {
-  assert(gui != NULL);
-  assert(joypad >= 0);
-  assert(joypad <= GUI_MAX_JOYPADS);
-  assert(button >= 0);
-  assert(button <= JOYPAD_NUM_BUTTONS);
+  //assert(gui != NULL);
+  //assert(joypad >= 0);
+ // assert(joypad <= GUI_MAX_JOYPADS);
+  //assert(button >= 0);
+  //assert(button <= JOYPAD_NUM_BUTTONS);
   return gui->buttonState[joypad][button];
 }

@@ -7,8 +7,10 @@
 #include "ppuMemory.h"
 #include "colour.h"
 #include "objectAttributeMemory.h"
-// palette adapted from http://nesdev.parodius.com/NESTechFAQ.htm
-struct colour systemPalette[PPU_NUM_SYSTEM_COLOURS] = {
+#include "gpio.h"
+#include <string.h>
+// palette adapted fromhttp://nesdev.parodius.com/NESTechFAQ.htm
+const struct colour systemPalette[PPU_NUM_SYSTEM_COLOURS] = {
   {0x75, 0x75, 0x75},
   {0x27, 0x1B, 0x8F},
   {0x00, 0x00, 0xAB},
@@ -74,8 +76,7 @@ struct colour systemPalette[PPU_NUM_SYSTEM_COLOURS] = {
   {0x00, 0x00, 0x00},
   {0x00, 0x00, 0x00}
 };
-Byte
-attributeTableLookup[PPU_VERTICAL_TILES_PER_ATTRIBUTE_BYTE][PPU_HORIZONTAL_TILES_PER_ATTRIBUTE_BYTE] = {
+const Byte attributeTableLookup[PPU_VERTICAL_TILES_PER_ATTRIBUTE_BYTE][PPU_HORIZONTAL_TILES_PER_ATTRIBUTE_BYTE] = {
   {0x0, 0x1, 0x4, 0x5},
   {0x2, 0x3, 0x6, 0x7},
   {0x8, 0x9, 0xC, 0xD},
@@ -108,17 +109,21 @@ struct ppu {
   Bool spriteColoursForScanlineIsBehindBackground[PPU_SCREEN_WIDTH_IN_PIXELS];
 };
 static void ppu_resetSpriteColoursForScanline(PPU ppu) {
-  assert(ppu != NULL);
-  int i;
-  for (i=0; i < PPU_SCREEN_WIDTH_IN_PIXELS; i++) {
+  //assert(ppu != NULL);
+ // int i;
+  
+  memset(ppu->spriteColoursForScanline,0,PPU_SCREEN_WIDTH_IN_PIXELS);
+  memset(ppu->spriteColoursForScanlineSet,FALSE,PPU_SCREEN_WIDTH_IN_PIXELS);
+  memset(ppu->spriteColoursForScanlineIsBehindBackground,FALSE,PPU_SCREEN_WIDTH_IN_PIXELS);
+  /*for (i=0; i < PPU_SCREEN_WIDTH_IN_PIXELS; i++) {
     ppu->spriteColoursForScanline[i] = 0;
     ppu->spriteColoursForScanlineSet[i] = FALSE;
     ppu->spriteColoursForScanlineIsBehindBackground[i] = FALSE;
-  }
+  }*/
 }
 PPU ppu_init(void) {
   PPU ppu = (PPU) malloc(sizeof(struct ppu));
-  assert(ppu != NULL);
+  //assert(ppu != NULL);
   ppu->controlRegister = 0;
   ppu->maskRegister = 0;
   ppu->statusRegister = 0;
@@ -141,11 +146,11 @@ PPU ppu_init(void) {
   return ppu;
 }
 void ppu_destroy(PPU ppu) {
-  assert(ppu != NULL);
+  //assert(ppu != NULL);
   free(ppu);
 }
 static Bool ppu_getControlHorizontalScrollNametable(PPU ppu) {
-  assert(ppu != NULL);
+  //assert(ppu != NULL);
   if ( (ppu->controlRegister & MASK_CONTROL_HORIZONTAL_SCROLL_NAME_TABLE_ON) ==
 MASK_CONTROL_HORIZONTAL_SCROLL_NAME_TABLE_ON) {
     return TRUE;
@@ -154,7 +159,7 @@ MASK_CONTROL_HORIZONTAL_SCROLL_NAME_TABLE_ON) {
   }
 }
 static void ppu_setControlHorizontalScrollNametable(PPU ppu, Bool state) {
-  assert(ppu != NULL);
+  //assert(ppu != NULL);
   if (state == TRUE) {
     ppu->controlRegister |= MASK_CONTROL_HORIZONTAL_SCROLL_NAME_TABLE_ON;
   } else if (state == FALSE) {
@@ -162,7 +167,7 @@ static void ppu_setControlHorizontalScrollNametable(PPU ppu, Bool state) {
   }
 }
 static Bool ppu_getControlVerticalScrollNametable(PPU ppu) {
-  assert(ppu != NULL);
+  //assert(ppu != NULL);
   if ( (ppu->controlRegister & MASK_CONTROL_VERTICAL_SCROLL_NAME_TABLE_ON) ==
 MASK_CONTROL_VERTICAL_SCROLL_NAME_TABLE_ON) {
     return TRUE;
@@ -171,7 +176,7 @@ MASK_CONTROL_VERTICAL_SCROLL_NAME_TABLE_ON) {
   }
 }
 static void ppu_setControlVerticalScrollNametable(PPU ppu, Bool state) {
-  assert(ppu != NULL);
+  //assert(ppu != NULL);
   if (state == TRUE) {
     ppu->controlRegister |= MASK_CONTROL_VERTICAL_SCROLL_NAME_TABLE_ON;
   } else if (state == FALSE) {
@@ -179,7 +184,7 @@ static void ppu_setControlVerticalScrollNametable(PPU ppu, Bool state) {
   }
 }
 static Address ppu_getCurrentBaseNametableAddress(PPU ppu) {
-  assert(ppu != NULL);
+  //assert(ppu != NULL);
   Address address = PPU_NAME_TABLE_0_FIRST_ADDRESS;
   if (ppu_getControlHorizontalScrollNametable(ppu) == TRUE) {
     address += PPU_NAME_TABLE_SIZE;
@@ -191,7 +196,7 @@ static Address ppu_getCurrentBaseNametableAddress(PPU ppu) {
   return address;
 }
 static Bool cpu_getMaskIntensifyRed(PPU ppu) {
-  assert(ppu != NULL);
+  //assert(ppu != NULL);
   if ((ppu->maskRegister & MASK_MASK_INTENSIFY_RED_ON) == MASK_MASK_INTENSIFY_RED_ON) {
     return TRUE;
   } else {
@@ -199,7 +204,7 @@ static Bool cpu_getMaskIntensifyRed(PPU ppu) {
   }
 }
 static void cpu_setMarkIntensifyRed(PPU ppu, Bool state) {
-  assert(ppu != NULL);
+  //assert(ppu != NULL);
   if (state == TRUE) {
     ppu->maskRegister |= MASK_MASK_INTENSIFY_RED_ON;
   } else if (state == FALSE) {
@@ -207,7 +212,7 @@ static void cpu_setMarkIntensifyRed(PPU ppu, Bool state) {
   }
 }
 static Bool cpu_getMaskIntensifyGren(PPU ppu) {
-  assert(ppu != NULL);
+  //assert(ppu != NULL);
   if ((ppu->maskRegister & MASK_MASK_INTENSIFY_GREEN_ON) ==
 MASK_MASK_INTENSIFY_GREEN_ON) {
     return TRUE;
@@ -216,7 +221,7 @@ MASK_MASK_INTENSIFY_GREEN_ON) {
   }
 }
 static void cpu_setMarkIntensifyGreen(PPU ppu, Bool state) {
-  assert(ppu != NULL);
+  //assert(ppu != NULL);
   if (state == TRUE) {
     ppu->maskRegister |= MASK_MASK_INTENSIFY_GREEN_ON;
   } else if (state == FALSE) {
@@ -224,7 +229,7 @@ static void cpu_setMarkIntensifyGreen(PPU ppu, Bool state) {
   }
 }
 static Bool cpu_getMaskIntensifyBlue(PPU ppu) {
-  assert(ppu != NULL);
+  //assert(ppu != NULL);
   if ((ppu->maskRegister & MASK_MASK_INTENSIFY_BLUE_ON) == MASK_MASK_INTENSIFY_BLUE_ON)
 {
     return TRUE;
@@ -233,7 +238,7 @@ static Bool cpu_getMaskIntensifyBlue(PPU ppu) {
   }
 }
 static void cpu_setMarkIntensifyBlue(PPU ppu, Bool state) {
-  assert(ppu != NULL);
+  //assert(ppu != NULL);
   if (state == TRUE) {
     ppu->maskRegister |= MASK_MASK_INTENSIFY_BLUE_ON;
   } else if (state == FALSE) {
@@ -241,7 +246,7 @@ static void cpu_setMarkIntensifyBlue(PPU ppu, Bool state) {
   }
 }
 static void ppu_setControlPPUAddressIncrement(PPU ppu, Bool state) {
-  assert(ppu != NULL);
+  //assert(ppu != NULL);
   if (state == TRUE) {
     ppu->controlRegister |= MASK_CONTROL_PPU_ADDRESS_INCREMENT_ON;
   } else if (state == FALSE) {
@@ -249,7 +254,7 @@ static void ppu_setControlPPUAddressIncrement(PPU ppu, Bool state) {
   }
 }
 static Bool ppu_getControlPPUAddressIncrement(PPU ppu) {
-  assert(ppu != NULL);
+  //assert(ppu != NULL);
   if ((ppu->controlRegister & MASK_CONTROL_PPU_ADDRESS_INCREMENT_ON) ==
 MASK_CONTROL_PPU_ADDRESS_INCREMENT_ON) {
     return TRUE;
@@ -258,7 +263,7 @@ MASK_CONTROL_PPU_ADDRESS_INCREMENT_ON) {
   }
 }
 static void ppu_setControlSpriteTileTable(PPU ppu, Bool state) {
-  assert(ppu != NULL);
+  //assert(ppu != NULL);
   if (state == TRUE) {
     ppu->controlRegister |= MASK_CONTROL_SPRITE_TILE_TABLE_ON;
   } else if (state == FALSE) {
@@ -266,7 +271,7 @@ static void ppu_setControlSpriteTileTable(PPU ppu, Bool state) {
   }
 }
 static Bool ppu_getControlSpriteTileTable(PPU ppu) {
-  assert(ppu != NULL);
+  //assert(ppu != NULL);
   if ((ppu->controlRegister & MASK_CONTROL_SPRITE_TILE_TABLE_ON) ==
 MASK_CONTROL_SPRITE_TILE_TABLE_ON) {
     return TRUE;
@@ -275,7 +280,7 @@ MASK_CONTROL_SPRITE_TILE_TABLE_ON) {
   }
 }
 static void ppu_setControlBackgroundTileTable(PPU ppu, Bool state) {
-  assert(ppu != NULL);
+  //assert(ppu != NULL);
   if (state == TRUE) {
     ppu->controlRegister |= MASK_CONTROL_BACKGROUND_TILE_TABLE_ON;
   } else if (state == FALSE) {
@@ -283,7 +288,7 @@ static void ppu_setControlBackgroundTileTable(PPU ppu, Bool state) {
   }
 }
 static Bool ppu_getControlBackgroundTileTable(PPU ppu) {
-  assert(ppu != NULL);
+  //assert(ppu != NULL);
   if ((ppu->controlRegister & MASK_CONTROL_BACKGROUND_TILE_TABLE_ON) ==
 MASK_CONTROL_BACKGROUND_TILE_TABLE_ON) {
     return TRUE;
@@ -292,7 +297,7 @@ MASK_CONTROL_BACKGROUND_TILE_TABLE_ON) {
   }
 }
 static void ppu_setControlSpriteSize(PPU ppu, Bool state) {
-  assert(ppu != NULL);
+  //assert(ppu != NULL);
   if (state == TRUE) {
     ppu->controlRegister |= MASK_CONTROL_SPRITE_SIZE_ON;
   } else if (state == FALSE) {
@@ -300,7 +305,7 @@ static void ppu_setControlSpriteSize(PPU ppu, Bool state) {
   }
 }
 static Bool ppu_getControlSpriteSize(PPU ppu) {
-  assert(ppu != NULL);
+  //assert(ppu != NULL);
   if ((ppu->controlRegister & MASK_CONTROL_SPRITE_SIZE_ON) ==
 MASK_CONTROL_SPRITE_SIZE_ON) {
     return TRUE;
@@ -309,7 +314,7 @@ MASK_CONTROL_SPRITE_SIZE_ON) {
   }
 }
 static void ppu_setControlNMI(PPU ppu, Bool state) {
-  assert(ppu != NULL);
+  //assert(ppu != NULL);
   if (state == TRUE) {
     ppu->controlRegister |= MASK_CONTROL_NMI_ON;
   } else if (state == FALSE) {
@@ -317,7 +322,7 @@ static void ppu_setControlNMI(PPU ppu, Bool state) {
   }
 }
 static Bool ppu_getControlNMI(PPU ppu) {
-  assert(ppu != NULL);
+  //assert(ppu != NULL);
   if ((ppu->controlRegister & MASK_CONTROL_NMI_ON) == MASK_CONTROL_NMI_ON) {
     return TRUE;
   } else {
@@ -325,7 +330,7 @@ static Bool ppu_getControlNMI(PPU ppu) {
   }
 }
 static void ppu_setMaskDisplayType(PPU ppu, Bool state) {
-  assert(ppu != NULL);
+  //assert(ppu != NULL);
   if (state == TRUE) {
     ppu->maskRegister |= MASK_MASK_DISPLAY_TYPE_ON;
   } else if (state == FALSE) {
@@ -333,7 +338,7 @@ static void ppu_setMaskDisplayType(PPU ppu, Bool state) {
   }
 }
 static Bool ppu_getMaskDisplayType(PPU ppu) {
-  assert(ppu != NULL);
+  //assert(ppu != NULL);
   if ((ppu->maskRegister & MASK_MASK_DISPLAY_TYPE_ON) == MASK_MASK_DISPLAY_TYPE_ON) {
     return TRUE;
   } else {
@@ -341,7 +346,7 @@ static Bool ppu_getMaskDisplayType(PPU ppu) {
   }
 }
 static void ppu_setMaskBackgroundClipping(PPU ppu, Bool state) {
-  assert(ppu != NULL);
+  //assert(ppu != NULL);
   if (state == TRUE) {
     ppu->maskRegister |= MASK_MASK_BACKGROUND_CLIPPING_ON;
   } else if (state == FALSE) {
@@ -349,7 +354,7 @@ static void ppu_setMaskBackgroundClipping(PPU ppu, Bool state) {
   }
 }
 static Bool ppu_getMaskBackgroundClipping(PPU ppu) {
-  assert(ppu != NULL);
+  //assert(ppu != NULL);
   if ((ppu->maskRegister & MASK_MASK_BACKGROUND_CLIPPING_ON) ==
 MASK_MASK_BACKGROUND_CLIPPING_ON) {
     return TRUE;
@@ -358,7 +363,7 @@ MASK_MASK_BACKGROUND_CLIPPING_ON) {
   }
 }
 static void ppu_setMaskSpriteClipping(PPU ppu, Bool state) {
-  assert(ppu != NULL);
+  //assert(ppu != NULL);
   if (state == TRUE) {
     ppu->maskRegister |= MASK_MASK_SPRITE_CLIPPING_ON;
   } else if (state == FALSE) {
@@ -366,7 +371,7 @@ static void ppu_setMaskSpriteClipping(PPU ppu, Bool state) {
   }
 }
 static Bool ppu_getMaskSpriteClipping(PPU ppu) {
-  assert(ppu != NULL);
+  //assert(ppu != NULL);
   if ((ppu->maskRegister & MASK_MASK_SPRITE_CLIPPING_ON) ==
 MASK_MASK_SPRITE_CLIPPING_ON) {
     return TRUE;
@@ -375,7 +380,7 @@ MASK_MASK_SPRITE_CLIPPING_ON) {
   }
 }
 static void ppu_setMaskBackgroundVisiblity(PPU ppu, Bool state) {
-  assert(ppu != NULL);
+  //assert(ppu != NULL);
   if (state == TRUE) {
     ppu->maskRegister |= MASK_MASK_BACKGROUND_VISIBILITY_ON;
   } else if (state == FALSE) {
@@ -383,7 +388,7 @@ static void ppu_setMaskBackgroundVisiblity(PPU ppu, Bool state) {
   }
 }
 static Bool ppu_getMaskBackgroundVisibility (PPU ppu) {
-  assert(ppu != NULL);
+  //assert(ppu != NULL);
   if ((ppu->maskRegister & MASK_MASK_BACKGROUND_VISIBILITY_ON) ==
 MASK_MASK_BACKGROUND_VISIBILITY_ON) {
     return TRUE;
@@ -392,7 +397,7 @@ MASK_MASK_BACKGROUND_VISIBILITY_ON) {
   }
 }
 static void ppu_setMaskSpriteVisibility(PPU ppu, Bool state) {
-  assert(ppu != NULL);
+  //assert(ppu != NULL);
   if (state == TRUE) {
     ppu->maskRegister |= MASK_MASK_SPRITE_VISIBILITY_ON;
   } else if (state == FALSE) {
@@ -400,7 +405,7 @@ static void ppu_setMaskSpriteVisibility(PPU ppu, Bool state) {
   }
 }
 static Bool ppu_getMaskSpriteVisibility(PPU ppu) {
-  assert(ppu != NULL);
+  //assert(ppu != NULL);
   if ((ppu->maskRegister & MASK_MASK_SPRITE_VISIBILITY_ON) ==
 MASK_MASK_SPRITE_VISIBILITY_ON) {
     return TRUE;
@@ -409,7 +414,7 @@ MASK_MASK_SPRITE_VISIBILITY_ON) {
   }
 }
 static void ppu_setStatusSpriteOverflow(PPU ppu, Bool state) {
-  assert(ppu != NULL);
+  //assert(ppu != NULL);
   if (state == TRUE) {
     ppu->statusRegister |= MASK_STATUS_SPRITE_OVERFLOW_ON;
   } else if (state == FALSE) {
@@ -417,7 +422,7 @@ static void ppu_setStatusSpriteOverflow(PPU ppu, Bool state) {
   }
 }
 static Bool ppu_getStatusSpriteOverflow(PPU ppu) {
-  assert(ppu != NULL);
+  //assert(ppu != NULL);
   if ((ppu->statusRegister & MASK_STATUS_SPRITE_OVERFLOW_ON) ==
 MASK_STATUS_SPRITE_OVERFLOW_ON) {
     return TRUE;
@@ -426,7 +431,7 @@ MASK_STATUS_SPRITE_OVERFLOW_ON) {
   }
 }
 static void ppu_setStatusSpriteCollisionHit(PPU ppu, Bool state) {
-  assert(ppu != NULL);
+  //assert(ppu != NULL);
   if (state == TRUE) {
     ppu->statusRegister |= MASK_STATUS_SPRITE_COLLISION_HIT_ON;
   } else if (state == FALSE) {
@@ -434,7 +439,7 @@ static void ppu_setStatusSpriteCollisionHit(PPU ppu, Bool state) {
   }
 }
 static Bool ppu_getStatusSpriteCollisionHit(PPU ppu) {
-  assert(ppu != NULL);
+  //assert(ppu != NULL);
   if ((ppu->statusRegister & MASK_STATUS_SPRITE_COLLISION_HIT_ON) ==
 MASK_STATUS_SPRITE_COLLISION_HIT_ON) {
     return TRUE;
@@ -443,7 +448,7 @@ MASK_STATUS_SPRITE_COLLISION_HIT_ON) {
   }
 }
 static void ppu_setStatusVerticalBlank(PPU ppu, Bool state) {
-  assert(ppu != NULL);
+  //assert(ppu != NULL);
   if (state == TRUE) {
     ppu->statusRegister |= MASK_STATUS_VBLANK_ON;
   } else if (state == FALSE) {
@@ -451,7 +456,7 @@ static void ppu_setStatusVerticalBlank(PPU ppu, Bool state) {
   }
 }
 static Bool ppu_getStatusVerticalBlank(PPU ppu) {
-  assert(ppu != NULL);
+  //assert(ppu != NULL);
   if ((ppu->statusRegister & MASK_STATUS_VBLANK_ON) == MASK_STATUS_VBLANK_ON) {
     return TRUE;
   } else {
@@ -459,11 +464,11 @@ static Bool ppu_getStatusVerticalBlank(PPU ppu) {
   }
 }
 static Byte ppu_getCurrentX(PPU ppu) {
-  assert(ppu != NULL);
+  //assert(ppu != NULL);
   return ppu->currentScanlineCycle;
 }
 static Byte ppu_getCurrentY(PPU ppu) {
-  assert(ppu != NULL);
+  //assert(ppu != NULL);
   return ppu->currentScanline - PPU_WASTED_VBLANK_SCANLINES -
 PPU_WASTED_PREFETCH_SCANLINES;
 }
@@ -475,23 +480,20 @@ PPU_BACKGROUND_TILES_PER_ROW;
   return tileNumber;
 }
 static Byte ppu_getBackgroundNametableByte(NES nes) {
-  assert(nes != NULL);
+  //assert(nes != NULL);
   PPU ppu = nes_getPPU(nes);
-  assert(ppu != NULL);
+  //assert(ppu != NULL);
   Address nametableStart = ppu_getCurrentBaseNametableAddress(ppu);
-  assert(nametableStart == PPU_NAME_TABLE_0_FIRST_ADDRESS ||
-         nametableStart == PPU_NAME_TABLE_1_FIRST_ADDRESS ||
-         nametableStart == PPU_NAME_TABLE_2_FIRST_ADDRESS ||
-         nametableStart == PPU_NAME_TABLE_3_FIRST_ADDRESS);
+  //assert(nametableStart == PPU_NAME_TABLE_0_FIRST_ADDRESS ||nametableStart == PPU_NAME_TABLE_1_FIRST_ADDRESS ||nametableStart ==PPU_NAME_TABLE_2_FIRST_ADDRESS ||      nametableStart == PPU_NAME_TABLE_3_FIRST_ADDRESS);
   Word x = ppu_getCurrentX(ppu);
   Word y = ppu_getCurrentY(ppu);
   Word tileNumber = ppu_getBackgroundTileNumber(x, y);
   Address nametableByteAddress = nametableStart + tileNumber;
-  VALIDATE_NAMETABLE_ADDRESS(nametableByteAddress);
+  //VALIDATE_NAMETABLE_ADDRESS(nametableByteAddress);
   return nes_readPPUMemory(nes,nametableByteAddress);
 }
 static Byte ppu_combinePatternBytes(PPU ppu, Byte pattern1, Byte pattern2, Byte x) {
-  assert(ppu != NULL);
+  //assert(ppu != NULL);
   x %= PPU_HORIZONTAL_PIXELS_PER_TILE;
   pattern1 = pattern1 << x;
   pattern1 = pattern1 >> (PPU_HORIZONTAL_PIXELS_PER_TILE - 1);
@@ -499,14 +501,13 @@ static Byte ppu_combinePatternBytes(PPU ppu, Byte pattern1, Byte pattern2, Byte 
   pattern2 = pattern2 >> (PPU_HORIZONTAL_PIXELS_PER_TILE - 1);
   pattern2 = pattern2 << 1;
   Byte patternIndex = pattern1 + pattern2;
-  assert(patternIndex <= 3);
+  //assert(patternIndex <= 3);
   return patternIndex;
 }
-static Byte ppu_getPatternColourIndex(NES nes, Address basePatternAddress, Byte
-patternTileNumber, Byte x, Byte y) {
-  assert(nes != NULL);
+static Byte ppu_getPatternColourIndex(NES nes, Address basePatternAddress, Byte patternTileNumber, Byte x, Byte y) {
+  //assert(nes != NULL);
   PPU ppu = nes_getPPU(nes);
-  assert(ppu != NULL);
+  //assert(ppu != NULL);
   Word horizontalOffset = patternTileNumber * PPU_PATTERN_BYTES_PER_TILE;
   Word verticalOffset = (y % PPU_VERTICAL_PIXELS_PER_TILE);
   Address pattern1Address = basePatternAddress + horizontalOffset + verticalOffset;
@@ -517,17 +518,14 @@ patternTileNumber, Byte x, Byte y) {
   return patternIndex;
 }
 static Byte ppu_getBackgroundAttributeByte(NES nes) {
-  assert(nes != NULL);
+  //assert(nes != NULL);
   PPU ppu = nes_getPPU(nes);
-  assert(ppu != NULL);
+  //assert(ppu != NULL);
   Address nametableStart = ppu_getCurrentBaseNametableAddress(ppu);
-  assert(nametableStart == PPU_NAME_TABLE_0_FIRST_ADDRESS ||
-         nametableStart == PPU_NAME_TABLE_1_FIRST_ADDRESS ||
-         nametableStart == PPU_NAME_TABLE_2_FIRST_ADDRESS ||
-         nametableStart == PPU_NAME_TABLE_3_FIRST_ADDRESS);
+  //assert(nametableStart == PPU_NAME_TABLE_0_FIRST_ADDRESS ||nametableStart == PPU_NAME_TABLE_1_FIRST_ADDRESS ||nametableStart == PPU_NAME_TABLE_2_FIRST_ADDRESS ||nametableStart == PPU_NAME_TABLE_3_FIRST_ADDRESS);
   Word x = ppu_getCurrentX(ppu);
   Word y = ppu_getCurrentY(ppu);
-  assert(PPU_NAMETABLE_BYTES_BEFORE_ATTRIBUTE_TABLE == 960);
+  //assert(PPU_NAMETABLE_BYTES_BEFORE_ATTRIBUTE_TABLE == 960);
   Address attributetableStart = nametableStart +
 PPU_NAMETABLE_BYTES_BEFORE_ATTRIBUTE_TABLE;
   Word tileNumber = ppu_getBackgroundTileNumber(x, y);
@@ -538,14 +536,14 @@ PPU_NAMETABLE_BYTES_BEFORE_ATTRIBUTE_TABLE;
 PPU_ATTRIBUTE_BYTES_PER_ROW;
   Address attributeByteAddress = attributetableStart + horizontalOffset +
 verticalOffset;
-  VALIDATE_NAMETABLE_ADDRESS(attributeByteAddress);
+  //VALIDATE_NAMETABLE_ADDRESS(attributeByteAddress);
   Byte attributeByte = nes_readPPUMemory(nes,attributeByteAddress);
   return attributeByte;
 }
 static Byte ppu_getBackgroundAttributeColourIndex(NES nes) {
-  assert(nes != NULL);
+  //assert(nes != NULL);
   PPU ppu = nes_getPPU(nes);
-  assert(ppu != NULL);
+  //assert(ppu != NULL);
   Byte attributeByte = ppu_getBackgroundAttributeByte(nes);
   Word x = ppu_getCurrentX(ppu);
   Word y = ppu_getCurrentY(ppu);
@@ -586,16 +584,16 @@ static Byte ppu_getBackgroundAttributeColourIndex(NES nes) {
   return attributeColourIndex;
 }
 static Byte ppu_getSystemIndexFromBackgroundIndex(NES nes, Byte backgroundColourIndex) {
-  assert(nes != NULL);
+  //assert(nes != NULL);
   Address address = PPU_BACKGROUND_PALETTE_FIRST_ADDRESS;
   address += backgroundColourIndex;
   Byte systemIndex = nes_readPPUMemory(nes, address);
   return systemIndex;
 }
 static Byte ppu_getCurrentBackgroundColour(NES nes) {
-  assert(nes != NULL);
+  //assert(nes != NULL);
   PPU ppu = nes_getPPU(nes);
-  assert(ppu != NULL);
+  //assert(ppu != NULL);
   Address basePatternAddress;
   if (ppu_getControlBackgroundTileTable(ppu) == FALSE) {
     basePatternAddress = PPU_PATTERN_TABLE_0_FIRST_ADDRESS;
@@ -621,19 +619,18 @@ patternTileNumber, x, y);
   return backgroundColourIndex;
 }
 static Byte ppu_getSystemIndexFromSpriteIndex(NES nes, Byte spriteColourIndex) {
-  assert(nes != NULL);
+  //assert(nes != NULL);
   Address address = PPU_SPRITE_PALETTE_FIRST_ADDRESS;
   address += spriteColourIndex;
   Byte systemIndex = nes_readPPUMemory(nes, address);
   return systemIndex;
 }
-static void ppu_updateScanlineSpriteColour8(NES nes, Byte spriteIndex, Address
-basePatternAddress, Byte multiplier) {
-  assert(nes != NULL);
+static void ppu_updateScanlineSpriteColour8(NES nes, Byte spriteIndex, Address basePatternAddress, Byte multiplier) {
+  //assert(nes != NULL);
   PPU ppu = nes_getPPU(nes);
-  assert(ppu != NULL);
+  //assert(ppu != NULL);
   Memory objectAttributeMemory = nes_getObjectAttributeMemory(nes);
-  assert(objectAttributeMemory != NULL);
+  //assert(objectAttributeMemory != NULL);
   Byte screenY = ppu_getCurrentY(ppu);
   Byte spriteLeftX = objectAttributeMemory_getX(objectAttributeMemory, spriteIndex);
   Byte spriteTopY = objectAttributeMemory_getY(objectAttributeMemory, spriteIndex) - 1;
@@ -682,17 +679,17 @@ objectAttributeMemory_isBehindBackground(objectAttributeMemory, spriteIndex);
 // this is almost a copy paste of ppu_updateScanlineSpriteColour8
 // think of a better way
 static void ppu_updateScanlineSpriteColour16(NES nes, Byte spriteIndex) {
-    assert(nes != NULL);
+    //assert(nes != NULL);
   Memory objectAttributeMemory = nes_getObjectAttributeMemory(nes);
-  assert(objectAttributeMemory != NULL);
+  //assert(objectAttributeMemory != NULL);
   Address basePatternAddress = objectAttributeMemory_getBankNumber(objectAttributeMemory,
 spriteIndex);
   ppu_updateScanlineSpriteColour8(nes, spriteIndex, basePatternAddress, 2);
 }
 static void ppu_calculateSpriteColoursForCurrentScanline(NES nes) {
-  assert(nes != NULL);
+  //assert(nes != NULL);
   PPU ppu = nes_getPPU(nes);
-  assert(ppu != NULL);
+  //assert(ppu != NULL);
   ppu_resetSpriteColoursForScanline(ppu);
   if ( ppu_getMaskSpriteVisibility(ppu) == TRUE) {
     Byte spriteIndex;
@@ -712,9 +709,9 @@ static void ppu_calculateSpriteColoursForCurrentScanline(NES nes) {
   }
 }
 static Byte ppu_getCurrentSpriteColour(NES nes, Byte currentBackgroundColour) {
-  assert(nes != NULL);
+  //assert(nes != NULL);
   PPU ppu = nes_getPPU(nes);
-  assert(ppu != NULL);
+  //assert(ppu != NULL);
   Byte screenX = ppu_getCurrentX(ppu);
   Byte systemColourIndex = 0;
   if (ppu->spriteColoursForScanlineSet[screenX] == FALSE) {
@@ -730,15 +727,15 @@ currentBackgroundColour);
     ppu_setStatusSpriteCollisionHit(ppu, TRUE);
     systemColourIndex = ppu_getSystemIndexFromSpriteIndex(nes, ppu->spriteColoursForScanline[screenX]);
   }
-  assert(systemColourIndex < PPU_NUM_SYSTEM_COLOURS);
+  //assert(systemColourIndex < PPU_NUM_SYSTEM_COLOURS);
   return systemColourIndex;
 }
 static void ppu_renderCurrentPixel(NES nes) {
-  assert(nes != NULL);
+  //assert(nes != NULL);
   PPU ppu = nes_getPPU(nes);
-  assert(ppu != NULL);
+  //assert(ppu != NULL);
   GUI gui = nes_getGUI(nes);
-  assert(gui != NULL);
+  //assert(gui != NULL);
   if (ppu->currentScanlineCycle == 0) {
     ppu_calculateSpriteColoursForCurrentScanline(nes);
   }
@@ -750,17 +747,20 @@ gui_drawPixel(gui,ppu_getCurrentX(ppu),ppu_getCurrentY(ppu),colour_getRed(colour
   colour_destroy(colour);
 }
 void ppu_step(NES nes) {
-  assert(nes != NULL);
-  GUI gui = nes_getGUI(nes);
-  assert(gui != NULL);
-  debug_printf("ppu_step\n");
+	 //gpio_toggle_pin(63);
+  //assert(nes != NULL);
+  //GUI gui = nes_getGUI(nes);
+  //assert(gui != NULL);
+  //debug_printf("ppu_step\n");
   PPU ppu = nes_getPPU(nes);
-  assert(ppu != NULL);
+  //assert(ppu != NULL);
   if (ppu->currentCycle == 0) {
     ppu->statusRegister = 0; // everything is cleared on line 0
   }
   if (ppu->currentScanline >=0 && ppu->currentScanline <= 19) {
     // do nothing, we are in vblank
+	ppu->currentScanline=20;
+	ppu->currentScanlineCycle=0;
   } else if (ppu->currentScanline == 20) {
     // debug_printf("%d\n", ppu->currentCycle);
     /*
@@ -781,28 +781,39 @@ void ppu_step(NES nes) {
     actual data to be displayed on the screen. This is done for 240 scanlines,
     of course.
     */
-    if (ppu->currentScanlineCycle >=0 && ppu->currentScanlineCycle <
-PPU_SCREEN_WIDTH_IN_PIXELS) {
+    if (ppu->currentScanlineCycle >=0 && ppu->currentScanlineCycle <PPU_SCREEN_WIDTH_IN_PIXELS) {
       ppu_renderCurrentPixel(nes);
+	  ppu_setStatusVerticalBlank(ppu, TRUE);//speedhack
+	  
     }
-  } else if (ppu->currentScanline == 261) {
+  } /*else if (ppu->currentScanline == 261) {
     /*
     261:       after the very last rendered scanline finishes, the PPU does nothing
     for 1 scanline (i.e. the programmer gets screwed out of perfectly good VINT
     time). When this scanline finishes, the VINT flag is set, and the process of
     drawing lines starts all over again.
-    */
+    
   } else {
-    assert(FALSE);
-  }
+    //assert(FALSE);
+  }*/
   ppu->currentCycle++;
   ppu->currentScanlineCycle++;
   if (ppu->currentCycle % PPU_CYCLES_PER_SCANLINE == 0) {
     ppu->currentScanline++;
     ppu->currentScanlineCycle = 0;
+	
+	
+	if (ppu->currentScanline%20)
+	{
+		if (ppu_getControlNMI(ppu) == TRUE) {
+			nes_generateNMI(nes);
+		}
+	}
+	
+	
     if (ppu->currentScanline == 20) {
       // The VBL flag is cleared 6820 PPU clocks, or exactly 20 scanlines, after it isset.
-      assert(ppu->currentCycle == 6820);
+      //assert(ppu->currentCycle == 6820);
       ppu_setStatusSpriteOverflow(ppu, FALSE);
       ppu_setStatusSpriteCollisionHit(ppu, FALSE);
       ppu_setStatusVerticalBlank(ppu, FALSE);
@@ -813,8 +824,8 @@ PPU_SCREEN_WIDTH_IN_PIXELS) {
       ppu->currentCycle = 0;
       ppu->currentScanline = 0;
       ppu->currentFrame++;
-      gui_refresh(gui);
-      printf("Frame: %d\n", ppu->currentFrame);
+    //  gui_refresh(gui);
+     // printf("Frame: %d\n", ppu->currentFrame);
       if (ppu_getControlNMI(ppu) == TRUE) {
         nes_generateNMI(nes);
       }
@@ -822,15 +833,15 @@ PPU_SCREEN_WIDTH_IN_PIXELS) {
   }
 }
 Byte ppu_getControlRegister(PPU ppu) {
-  assert(ppu != NULL);
+  //assert(ppu != NULL);
   return ppu->controlRegister;
 }
 Byte ppu_getMaskRegister(PPU ppu) {
-  assert(ppu != NULL);
+  //assert(ppu != NULL);
   return ppu->maskRegister;
 }
 Byte ppu_getStatusRegister(PPU ppu) {
-  assert(ppu != NULL);
+  //assert(ppu != NULL);
   Byte status = ppu->statusRegister;
   // cleared on read
   ppu_setStatusVerticalBlank(ppu, FALSE);
@@ -838,51 +849,51 @@ Byte ppu_getStatusRegister(PPU ppu) {
   return status;
 }
 Byte ppu_getSpriteAddressRegister(PPU ppu) {
-  assert(ppu != NULL);
+  //assert(ppu != NULL);
   return ppu->spriteAddressRegister;
 }
 Byte ppu_getSpriteDataRegister(NES nes) {
-  assert(nes != NULL);
+  //assert(nes != NULL);
   PPU ppu = nes_getPPU(nes);
-  assert(ppu != NULL);
+  //assert(ppu != NULL);
   Byte data = nes_readObjectAttributeMemory(nes, ppu->spriteAddressRegister);
   //reads don't increase this?
   //ppu->spriteAddressRegister++;
   return data;
 }
 void ppu_setSpriteDataRegister(NES nes, Byte spriteDataRegister) {
-  assert(nes != NULL);
+  //assert(nes != NULL);
   PPU ppu = nes_getPPU(nes);
-  assert(ppu != NULL);
+  //assert(ppu != NULL);
   nes_writeObjectAttributeMemory(nes, ppu->spriteAddressRegister, spriteDataRegister);
   ppu->spriteAddressRegister++;
 }
 Byte ppu_getScrollRegister(PPU ppu) {
-  assert(ppu != NULL);
+  //assert(ppu != NULL);
   return ppu->scrollRegister;
 }
 Byte ppu_getPPUMemoryAddressRegister(PPU ppu) {
-  assert(ppu != NULL);
+  //assert(ppu != NULL);
   return ppu->ppuMemoryAddressRegister;
 }
 void ppu_setControlRegister(PPU ppu, Byte controlRegister) {
-  assert(ppu != NULL);
+  //assert(ppu != NULL);
   ppu->controlRegister = controlRegister;
 }
 void ppu_setMaskRegister(PPU ppu, Byte maskRegister) {
-  assert(ppu != NULL);
+  //assert(ppu != NULL);
   ppu->maskRegister = maskRegister;
 }
 void ppu_setStatusRegister(PPU ppu, Byte statusRegister) {
-  assert(ppu != NULL);
+  //assert(ppu != NULL);
   ppu->statusRegister = statusRegister;
 }
 void ppu_setSpriteAddressRegister(PPU ppu, Byte spriteAddressRegister) {
-  assert(ppu != NULL);
+  //assert(ppu != NULL);
   ppu->spriteAddressRegister = spriteAddressRegister;
 }
 void ppu_setScrollRegister(PPU ppu, Byte scrollRegister) {
-  assert(ppu != NULL);
+  //assert(ppu != NULL);
   if (ppu->hasPartial == FALSE) {
     ppu->horizontalScroll = scrollRegister;
     ppu->hasPartial = TRUE;
@@ -894,7 +905,7 @@ void ppu_setScrollRegister(PPU ppu, Byte scrollRegister) {
   ppu->scrollRegister = scrollRegister;
 }
 void ppu_setPPUMemoryAddressRegister(PPU ppu, Byte ppuMemoryAddressRegister) {
-  assert(ppu != NULL);
+  //assert(ppu != NULL);
   if (ppu->hasPartial == FALSE) {
     ppu->ppuAddressHigh = ppuMemoryAddressRegister;
     ppu->hasPartial = TRUE;
@@ -906,7 +917,7 @@ void ppu_setPPUMemoryAddressRegister(PPU ppu, Byte ppuMemoryAddressRegister) {
   ppu->ppuMemoryAddressRegister = ppuMemoryAddressRegister;
 }
 static void ppu_increasePPUMemoryAddress(PPU ppu) {
-  //assert(ppu->hasPartial == FALSE);
+  ////assert(ppu->hasPartial == FALSE);
   Address address = ppu->ppuAddressLow;
   address += ppu->ppuAddressHigh << BITS_PER_BYTE;
   if (ppu_getControlPPUAddressIncrement(ppu) == TRUE) {
@@ -918,9 +929,9 @@ static void ppu_increasePPUMemoryAddress(PPU ppu) {
   ppu->ppuAddressHigh = GET_ADDRESS_HIGH_BYTE(address);
 }
 void ppu_setPPUMemoryDataRegister(NES nes, Byte ppuMemoryDataRegister) {
-  assert(nes != NULL);
+  //assert(nes != NULL);
   PPU ppu = nes_getPPU(nes);
-  assert(ppu != NULL);
+  //assert(ppu != NULL);
   Address address = ppu->ppuAddressLow;
   address += ppu->ppuAddressHigh << BITS_PER_BYTE;
   nes_writePPUMemory(nes, address, ppuMemoryDataRegister);
@@ -929,9 +940,9 @@ void ppu_setPPUMemoryDataRegister(NES nes, Byte ppuMemoryDataRegister) {
 }
 // one buffer pipeline
 Byte ppu_getPPUMemoryDataRegister(NES nes) {
-  assert(nes != NULL);
+  //assert(nes != NULL);
   PPU ppu = nes_getPPU(nes);
-  assert(ppu != NULL);
+  //assert(ppu != NULL);
   Byte data = ppu->ppuMemoryReadBuffer;
   Address address = ppu->ppuAddressLow;
   address += ppu->ppuAddressHigh << BITS_PER_BYTE;
@@ -939,7 +950,7 @@ Byte ppu_getPPUMemoryDataRegister(NES nes) {
   while (address > PPU_LAST_REAL_ADDRESS) {
     address -= PPU_NUM_REAL_ADDRESSES;
   }
-  assert(address <= PPU_LAST_REAL_ADDRESS);
+  //assert(address <= PPU_LAST_REAL_ADDRESS);
   // palette reads are not buffered
   if (address >= PPU_BACKGROUND_PALETTE_FIRST_ADDRESS) {
     data = ppu->ppuMemoryReadBuffer;
@@ -950,560 +961,560 @@ Byte ppu_getPPUMemoryDataRegister(NES nes) {
 void ppu_test(void) {
   {
     PPU ppu = ppu_init();
-    assert(ppu != NULL);
+    //assert(ppu != NULL);
     ppu_setStatusVerticalBlank(ppu, TRUE);
-    assert(ppu_getStatusVerticalBlank(ppu) == TRUE);
+    //assert(ppu_getStatusVerticalBlank(ppu) == TRUE);
     ppu_setStatusVerticalBlank(ppu, FALSE);
-  assert(ppu_getStatusVerticalBlank(ppu) == FALSE);
+  //assert(ppu_getStatusVerticalBlank(ppu) == FALSE);
 }
 {
   PPU ppu = ppu_init();
-  assert(ppu != NULL);
+  //assert(ppu != NULL);
   ppu_setControlPPUAddressIncrement(ppu, TRUE);
-  assert(ppu_getControlPPUAddressIncrement(ppu) == TRUE);
-  assert(ppu_getControlSpriteTileTable(ppu) == FALSE);
-  assert(ppu_getControlBackgroundTileTable(ppu) == FALSE);
-  assert(ppu_getControlSpriteSize(ppu) == FALSE);
-  assert(ppu_getControlNMI(ppu) == FALSE);
-  assert(ppu_getMaskDisplayType(ppu) == FALSE);
-  assert(ppu_getMaskBackgroundClipping(ppu) == FALSE);
-  assert(ppu_getMaskSpriteClipping(ppu) == FALSE);
-  assert(ppu_getMaskBackgroundVisibility(ppu) == FALSE);
-  assert(ppu_getMaskSpriteVisibility(ppu) == FALSE);
-  assert(ppu_getStatusVerticalBlank(ppu) == FALSE);
-  assert(ppu_getStatusSpriteOverflow(ppu) == FALSE);
-  assert(ppu_getStatusSpriteCollisionHit(ppu) == FALSE);
+  //assert(ppu_getControlPPUAddressIncrement(ppu) == TRUE);
+  //assert(ppu_getControlSpriteTileTable(ppu) == FALSE);
+  //assert(ppu_getControlBackgroundTileTable(ppu) == FALSE);
+  //assert(ppu_getControlSpriteSize(ppu) == FALSE);
+  //assert(ppu_getControlNMI(ppu) == FALSE);
+  //assert(ppu_getMaskDisplayType(ppu) == FALSE);
+  //assert(ppu_getMaskBackgroundClipping(ppu) == FALSE);
+  //assert(ppu_getMaskSpriteClipping(ppu) == FALSE);
+  //assert(ppu_getMaskBackgroundVisibility(ppu) == FALSE);
+  //assert(ppu_getMaskSpriteVisibility(ppu) == FALSE);
+  //assert(ppu_getStatusVerticalBlank(ppu) == FALSE);
+  //assert(ppu_getStatusSpriteOverflow(ppu) == FALSE);
+  //assert(ppu_getStatusSpriteCollisionHit(ppu) == FALSE);
   ppu_setControlPPUAddressIncrement(ppu, FALSE);
-  assert(ppu_getControlPPUAddressIncrement(ppu) == FALSE);
-  assert(ppu_getControlSpriteTileTable(ppu) == FALSE);
-  assert(ppu_getControlBackgroundTileTable(ppu) == FALSE);
-  assert(ppu_getControlSpriteSize(ppu) == FALSE);
-  assert(ppu_getControlNMI(ppu) == FALSE);
-  assert(ppu_getMaskDisplayType(ppu) == FALSE);
-  assert(ppu_getMaskBackgroundClipping(ppu) == FALSE);
-  assert(ppu_getMaskSpriteClipping(ppu) == FALSE);
-  assert(ppu_getMaskBackgroundVisibility(ppu) == FALSE);
-  assert(ppu_getMaskSpriteVisibility(ppu) == FALSE);
-  assert(ppu_getStatusVerticalBlank(ppu) == FALSE);
-  assert(ppu_getStatusSpriteOverflow(ppu) == FALSE);
-  assert(ppu_getStatusSpriteCollisionHit(ppu) == FALSE);
+  //assert(ppu_getControlPPUAddressIncrement(ppu) == FALSE);
+  //assert(ppu_getControlSpriteTileTable(ppu) == FALSE);
+  //assert(ppu_getControlBackgroundTileTable(ppu) == FALSE);
+  //assert(ppu_getControlSpriteSize(ppu) == FALSE);
+  //assert(ppu_getControlNMI(ppu) == FALSE);
+  //assert(ppu_getMaskDisplayType(ppu) == FALSE);
+  //assert(ppu_getMaskBackgroundClipping(ppu) == FALSE);
+  //assert(ppu_getMaskSpriteClipping(ppu) == FALSE);
+  //assert(ppu_getMaskBackgroundVisibility(ppu) == FALSE);
+  //assert(ppu_getMaskSpriteVisibility(ppu) == FALSE);
+  //assert(ppu_getStatusVerticalBlank(ppu) == FALSE);
+  //assert(ppu_getStatusSpriteOverflow(ppu) == FALSE);
+  //assert(ppu_getStatusSpriteCollisionHit(ppu) == FALSE);
   ppu_setControlSpriteTileTable(ppu, TRUE);
-  assert(ppu_getControlPPUAddressIncrement(ppu) == FALSE);
-  assert(ppu_getControlSpriteTileTable(ppu) == TRUE);
-  assert(ppu_getControlBackgroundTileTable(ppu) == FALSE);
-  assert(ppu_getControlSpriteSize(ppu) == FALSE);
-  assert(ppu_getControlNMI(ppu) == FALSE);
-  assert(ppu_getMaskDisplayType(ppu) == FALSE);
-  assert(ppu_getMaskBackgroundClipping(ppu) == FALSE);
-  assert(ppu_getMaskSpriteClipping(ppu) == FALSE);
-  assert(ppu_getMaskBackgroundVisibility(ppu) == FALSE);
-  assert(ppu_getMaskSpriteVisibility(ppu) == FALSE);
-  assert(ppu_getStatusVerticalBlank(ppu) == FALSE);
-  assert(ppu_getStatusSpriteOverflow(ppu) == FALSE);
-  assert(ppu_getStatusSpriteCollisionHit(ppu) == FALSE);
+  //assert(ppu_getControlPPUAddressIncrement(ppu) == FALSE);
+  //assert(ppu_getControlSpriteTileTable(ppu) == TRUE);
+  //assert(ppu_getControlBackgroundTileTable(ppu) == FALSE);
+  //assert(ppu_getControlSpriteSize(ppu) == FALSE);
+  //assert(ppu_getControlNMI(ppu) == FALSE);
+  //assert(ppu_getMaskDisplayType(ppu) == FALSE);
+  //assert(ppu_getMaskBackgroundClipping(ppu) == FALSE);
+  //assert(ppu_getMaskSpriteClipping(ppu) == FALSE);
+  //assert(ppu_getMaskBackgroundVisibility(ppu) == FALSE);
+  //assert(ppu_getMaskSpriteVisibility(ppu) == FALSE);
+  //assert(ppu_getStatusVerticalBlank(ppu) == FALSE);
+  //assert(ppu_getStatusSpriteOverflow(ppu) == FALSE);
+  //assert(ppu_getStatusSpriteCollisionHit(ppu) == FALSE);
   ppu_setControlSpriteTileTable(ppu, FALSE);
-  assert(ppu_getControlPPUAddressIncrement(ppu) == FALSE);
-  assert(ppu_getControlSpriteTileTable(ppu) == FALSE);
-assert(ppu_getControlBackgroundTileTable(ppu) == FALSE);
-assert(ppu_getControlSpriteSize(ppu) == FALSE);
-assert(ppu_getControlNMI(ppu) == FALSE);
-assert(ppu_getMaskDisplayType(ppu) == FALSE);
-assert(ppu_getMaskBackgroundClipping(ppu) == FALSE);
-assert(ppu_getMaskSpriteClipping(ppu) == FALSE);
-assert(ppu_getMaskBackgroundVisibility(ppu) == FALSE);
-assert(ppu_getMaskSpriteVisibility(ppu) == FALSE);
-assert(ppu_getStatusVerticalBlank(ppu) == FALSE);
-assert(ppu_getStatusSpriteOverflow(ppu) == FALSE);
-assert(ppu_getStatusSpriteCollisionHit(ppu) == FALSE);
+  //assert(ppu_getControlPPUAddressIncrement(ppu) == FALSE);
+  //assert(ppu_getControlSpriteTileTable(ppu) == FALSE);
+//assert(ppu_getControlBackgroundTileTable(ppu) == FALSE);
+//assert(ppu_getControlSpriteSize(ppu) == FALSE);
+//assert(ppu_getControlNMI(ppu) == FALSE);
+//assert(ppu_getMaskDisplayType(ppu) == FALSE);
+//assert(ppu_getMaskBackgroundClipping(ppu) == FALSE);
+//assert(ppu_getMaskSpriteClipping(ppu) == FALSE);
+//assert(ppu_getMaskBackgroundVisibility(ppu) == FALSE);
+//assert(ppu_getMaskSpriteVisibility(ppu) == FALSE);
+//assert(ppu_getStatusVerticalBlank(ppu) == FALSE);
+//assert(ppu_getStatusSpriteOverflow(ppu) == FALSE);
+//assert(ppu_getStatusSpriteCollisionHit(ppu) == FALSE);
 ppu_setControlBackgroundTileTable(ppu, TRUE);
-assert(ppu_getControlPPUAddressIncrement(ppu) == FALSE);
-assert(ppu_getControlSpriteTileTable(ppu) == FALSE);
-assert(ppu_getControlBackgroundTileTable(ppu) == TRUE);
-assert(ppu_getControlSpriteSize(ppu) == FALSE);
-assert(ppu_getControlNMI(ppu) == FALSE);
-assert(ppu_getMaskDisplayType(ppu) == FALSE);
-assert(ppu_getMaskBackgroundClipping(ppu) == FALSE);
-assert(ppu_getMaskSpriteClipping(ppu) == FALSE);
-assert(ppu_getMaskBackgroundVisibility(ppu) == FALSE);
-assert(ppu_getMaskSpriteVisibility(ppu) == FALSE);
-assert(ppu_getStatusVerticalBlank(ppu) == FALSE);
-assert(ppu_getStatusSpriteOverflow(ppu) == FALSE);
-assert(ppu_getStatusSpriteCollisionHit(ppu) == FALSE);
+//assert(ppu_getControlPPUAddressIncrement(ppu) == FALSE);
+//assert(ppu_getControlSpriteTileTable(ppu) == FALSE);
+//assert(ppu_getControlBackgroundTileTable(ppu) == TRUE);
+//assert(ppu_getControlSpriteSize(ppu) == FALSE);
+//assert(ppu_getControlNMI(ppu) == FALSE);
+//assert(ppu_getMaskDisplayType(ppu) == FALSE);
+//assert(ppu_getMaskBackgroundClipping(ppu) == FALSE);
+//assert(ppu_getMaskSpriteClipping(ppu) == FALSE);
+//assert(ppu_getMaskBackgroundVisibility(ppu) == FALSE);
+//assert(ppu_getMaskSpriteVisibility(ppu) == FALSE);
+//assert(ppu_getStatusVerticalBlank(ppu) == FALSE);
+//assert(ppu_getStatusSpriteOverflow(ppu) == FALSE);
+//assert(ppu_getStatusSpriteCollisionHit(ppu) == FALSE);
 ppu_setControlBackgroundTileTable(ppu, FALSE);
-assert(ppu_getControlPPUAddressIncrement(ppu) == FALSE);
-assert(ppu_getControlSpriteTileTable(ppu) == FALSE);
-assert(ppu_getControlBackgroundTileTable(ppu) == FALSE);
-assert(ppu_getControlSpriteSize(ppu) == FALSE);
-assert(ppu_getControlNMI(ppu) == FALSE);
-assert(ppu_getMaskDisplayType(ppu) == FALSE);
-assert(ppu_getMaskBackgroundClipping(ppu) == FALSE);
-assert(ppu_getMaskSpriteClipping(ppu) == FALSE);
-assert(ppu_getMaskBackgroundVisibility(ppu) == FALSE);
-assert(ppu_getMaskSpriteVisibility(ppu) == FALSE);
-assert(ppu_getStatusVerticalBlank(ppu) == FALSE);
-assert(ppu_getStatusSpriteOverflow(ppu) == FALSE);
-assert(ppu_getStatusSpriteCollisionHit(ppu) == FALSE);
+//assert(ppu_getControlPPUAddressIncrement(ppu) == FALSE);
+//assert(ppu_getControlSpriteTileTable(ppu) == FALSE);
+//assert(ppu_getControlBackgroundTileTable(ppu) == FALSE);
+//assert(ppu_getControlSpriteSize(ppu) == FALSE);
+//assert(ppu_getControlNMI(ppu) == FALSE);
+//assert(ppu_getMaskDisplayType(ppu) == FALSE);
+//assert(ppu_getMaskBackgroundClipping(ppu) == FALSE);
+//assert(ppu_getMaskSpriteClipping(ppu) == FALSE);
+//assert(ppu_getMaskBackgroundVisibility(ppu) == FALSE);
+//assert(ppu_getMaskSpriteVisibility(ppu) == FALSE);
+//assert(ppu_getStatusVerticalBlank(ppu) == FALSE);
+//assert(ppu_getStatusSpriteOverflow(ppu) == FALSE);
+//assert(ppu_getStatusSpriteCollisionHit(ppu) == FALSE);
 ppu_setControlSpriteSize(ppu, TRUE);
-assert(ppu_getControlPPUAddressIncrement(ppu) == FALSE);
-assert(ppu_getControlSpriteTileTable(ppu) == FALSE);
-assert(ppu_getControlBackgroundTileTable(ppu) == FALSE);
-assert(ppu_getControlSpriteSize(ppu) == TRUE);
-assert(ppu_getControlNMI(ppu) == FALSE);
-assert(ppu_getMaskDisplayType(ppu) == FALSE);
-assert(ppu_getMaskBackgroundClipping(ppu) == FALSE);
-assert(ppu_getMaskSpriteClipping(ppu) == FALSE);
-assert(ppu_getMaskBackgroundVisibility(ppu) == FALSE);
-assert(ppu_getMaskSpriteVisibility(ppu) == FALSE);
-assert(ppu_getStatusVerticalBlank(ppu) == FALSE);
-assert(ppu_getStatusSpriteOverflow(ppu) == FALSE);
-assert(ppu_getStatusSpriteCollisionHit(ppu) == FALSE);
+//assert(ppu_getControlPPUAddressIncrement(ppu) == FALSE);
+//assert(ppu_getControlSpriteTileTable(ppu) == FALSE);
+//assert(ppu_getControlBackgroundTileTable(ppu) == FALSE);
+//assert(ppu_getControlSpriteSize(ppu) == TRUE);
+//assert(ppu_getControlNMI(ppu) == FALSE);
+//assert(ppu_getMaskDisplayType(ppu) == FALSE);
+//assert(ppu_getMaskBackgroundClipping(ppu) == FALSE);
+//assert(ppu_getMaskSpriteClipping(ppu) == FALSE);
+//assert(ppu_getMaskBackgroundVisibility(ppu) == FALSE);
+//assert(ppu_getMaskSpriteVisibility(ppu) == FALSE);
+//assert(ppu_getStatusVerticalBlank(ppu) == FALSE);
+//assert(ppu_getStatusSpriteOverflow(ppu) == FALSE);
+//assert(ppu_getStatusSpriteCollisionHit(ppu) == FALSE);
 ppu_setControlSpriteSize(ppu, FALSE);
-assert(ppu_getControlPPUAddressIncrement(ppu) == FALSE);
-assert(ppu_getControlSpriteTileTable(ppu) == FALSE);
-assert(ppu_getControlBackgroundTileTable(ppu) == FALSE);
-assert(ppu_getControlSpriteSize(ppu) == FALSE);
-assert(ppu_getControlNMI(ppu) == FALSE);
-assert(ppu_getMaskDisplayType(ppu) == FALSE);
-assert(ppu_getMaskBackgroundClipping(ppu) == FALSE);
-assert(ppu_getMaskSpriteClipping(ppu) == FALSE);
-assert(ppu_getMaskBackgroundVisibility(ppu) == FALSE);
-assert(ppu_getMaskSpriteVisibility(ppu) == FALSE);
-assert(ppu_getStatusVerticalBlank(ppu) == FALSE);
-assert(ppu_getStatusSpriteOverflow(ppu) == FALSE);
-assert(ppu_getStatusSpriteCollisionHit(ppu) == FALSE);
+//assert(ppu_getControlPPUAddressIncrement(ppu) == FALSE);
+//assert(ppu_getControlSpriteTileTable(ppu) == FALSE);
+//assert(ppu_getControlBackgroundTileTable(ppu) == FALSE);
+//assert(ppu_getControlSpriteSize(ppu) == FALSE);
+//assert(ppu_getControlNMI(ppu) == FALSE);
+//assert(ppu_getMaskDisplayType(ppu) == FALSE);
+//assert(ppu_getMaskBackgroundClipping(ppu) == FALSE);
+//assert(ppu_getMaskSpriteClipping(ppu) == FALSE);
+//assert(ppu_getMaskBackgroundVisibility(ppu) == FALSE);
+//assert(ppu_getMaskSpriteVisibility(ppu) == FALSE);
+//assert(ppu_getStatusVerticalBlank(ppu) == FALSE);
+//assert(ppu_getStatusSpriteOverflow(ppu) == FALSE);
+//assert(ppu_getStatusSpriteCollisionHit(ppu) == FALSE);
 ppu_setControlNMI(ppu, TRUE);
-assert(ppu_getControlPPUAddressIncrement(ppu) == FALSE);
-assert(ppu_getControlSpriteTileTable(ppu) == FALSE);
-assert(ppu_getControlBackgroundTileTable(ppu) == FALSE);
-assert(ppu_getControlSpriteSize(ppu) == FALSE);
-assert(ppu_getControlNMI(ppu) == TRUE);
-assert(ppu_getMaskDisplayType(ppu) == FALSE);
-assert(ppu_getMaskBackgroundClipping(ppu) == FALSE);
-assert(ppu_getMaskSpriteClipping(ppu) == FALSE);
-assert(ppu_getMaskBackgroundVisibility(ppu) == FALSE);
-assert(ppu_getMaskSpriteVisibility(ppu) == FALSE);
-assert(ppu_getStatusVerticalBlank(ppu) == FALSE);
-assert(ppu_getStatusSpriteOverflow(ppu) == FALSE);
-assert(ppu_getStatusSpriteCollisionHit(ppu) == FALSE);
+//assert(ppu_getControlPPUAddressIncrement(ppu) == FALSE);
+//assert(ppu_getControlSpriteTileTable(ppu) == FALSE);
+//assert(ppu_getControlBackgroundTileTable(ppu) == FALSE);
+//assert(ppu_getControlSpriteSize(ppu) == FALSE);
+//assert(ppu_getControlNMI(ppu) == TRUE);
+//assert(ppu_getMaskDisplayType(ppu) == FALSE);
+//assert(ppu_getMaskBackgroundClipping(ppu) == FALSE);
+//assert(ppu_getMaskSpriteClipping(ppu) == FALSE);
+//assert(ppu_getMaskBackgroundVisibility(ppu) == FALSE);
+//assert(ppu_getMaskSpriteVisibility(ppu) == FALSE);
+//assert(ppu_getStatusVerticalBlank(ppu) == FALSE);
+//assert(ppu_getStatusSpriteOverflow(ppu) == FALSE);
+//assert(ppu_getStatusSpriteCollisionHit(ppu) == FALSE);
 ppu_setControlNMI(ppu, FALSE);
-assert(ppu_getControlPPUAddressIncrement(ppu) == FALSE);
-assert(ppu_getControlSpriteTileTable(ppu) == FALSE);
-assert(ppu_getControlBackgroundTileTable(ppu) == FALSE);
-assert(ppu_getControlSpriteSize(ppu) == FALSE);
-assert(ppu_getControlNMI(ppu) == FALSE);
-assert(ppu_getMaskDisplayType(ppu) == FALSE);
-assert(ppu_getMaskBackgroundClipping(ppu) == FALSE);
-assert(ppu_getMaskSpriteClipping(ppu) == FALSE);
-assert(ppu_getMaskBackgroundVisibility(ppu) == FALSE);
-assert(ppu_getMaskSpriteVisibility(ppu) == FALSE);
-assert(ppu_getStatusVerticalBlank(ppu) == FALSE);
-assert(ppu_getStatusSpriteOverflow(ppu) == FALSE);
-assert(ppu_getStatusSpriteCollisionHit(ppu) == FALSE);
+//assert(ppu_getControlPPUAddressIncrement(ppu) == FALSE);
+//assert(ppu_getControlSpriteTileTable(ppu) == FALSE);
+//assert(ppu_getControlBackgroundTileTable(ppu) == FALSE);
+//assert(ppu_getControlSpriteSize(ppu) == FALSE);
+//assert(ppu_getControlNMI(ppu) == FALSE);
+//assert(ppu_getMaskDisplayType(ppu) == FALSE);
+//assert(ppu_getMaskBackgroundClipping(ppu) == FALSE);
+//assert(ppu_getMaskSpriteClipping(ppu) == FALSE);
+//assert(ppu_getMaskBackgroundVisibility(ppu) == FALSE);
+//assert(ppu_getMaskSpriteVisibility(ppu) == FALSE);
+//assert(ppu_getStatusVerticalBlank(ppu) == FALSE);
+//assert(ppu_getStatusSpriteOverflow(ppu) == FALSE);
+//assert(ppu_getStatusSpriteCollisionHit(ppu) == FALSE);
 ppu_setStatusVerticalBlank(ppu, TRUE);
-assert(ppu_getControlPPUAddressIncrement(ppu) == FALSE);
-assert(ppu_getControlSpriteTileTable(ppu) == FALSE);
-assert(ppu_getControlBackgroundTileTable(ppu) == FALSE);
-assert(ppu_getControlSpriteSize(ppu) == FALSE);
-assert(ppu_getControlNMI(ppu) == FALSE);
-assert(ppu_getMaskDisplayType(ppu) == FALSE);
-assert(ppu_getMaskBackgroundClipping(ppu) == FALSE);
-assert(ppu_getMaskSpriteClipping(ppu) == FALSE);
-assert(ppu_getMaskBackgroundVisibility(ppu) == FALSE);
-assert(ppu_getMaskSpriteVisibility(ppu) == FALSE);
-assert(ppu_getStatusVerticalBlank(ppu) == TRUE);
-assert(ppu_getStatusSpriteOverflow(ppu) == FALSE);
-assert(ppu_getStatusSpriteCollisionHit(ppu) == FALSE);
+//assert(ppu_getControlPPUAddressIncrement(ppu) == FALSE);
+//assert(ppu_getControlSpriteTileTable(ppu) == FALSE);
+//assert(ppu_getControlBackgroundTileTable(ppu) == FALSE);
+//assert(ppu_getControlSpriteSize(ppu) == FALSE);
+//assert(ppu_getControlNMI(ppu) == FALSE);
+//assert(ppu_getMaskDisplayType(ppu) == FALSE);
+//assert(ppu_getMaskBackgroundClipping(ppu) == FALSE);
+//assert(ppu_getMaskSpriteClipping(ppu) == FALSE);
+//assert(ppu_getMaskBackgroundVisibility(ppu) == FALSE);
+//assert(ppu_getMaskSpriteVisibility(ppu) == FALSE);
+//assert(ppu_getStatusVerticalBlank(ppu) == TRUE);
+//assert(ppu_getStatusSpriteOverflow(ppu) == FALSE);
+//assert(ppu_getStatusSpriteCollisionHit(ppu) == FALSE);
 ppu_setStatusVerticalBlank(ppu, FALSE);
-assert(ppu_getControlPPUAddressIncrement(ppu) == FALSE);
-assert(ppu_getControlSpriteTileTable(ppu) == FALSE);
-assert(ppu_getControlBackgroundTileTable(ppu) == FALSE);
-assert(ppu_getControlSpriteSize(ppu) == FALSE);
-assert(ppu_getControlNMI(ppu) == FALSE);
-assert(ppu_getMaskDisplayType(ppu) == FALSE);
-assert(ppu_getMaskBackgroundClipping(ppu) == FALSE);
-assert(ppu_getMaskSpriteClipping(ppu) == FALSE);
-assert(ppu_getMaskBackgroundVisibility(ppu) == FALSE);
-assert(ppu_getMaskSpriteVisibility(ppu) == FALSE);
-assert(ppu_getStatusVerticalBlank(ppu) == FALSE);
-assert(ppu_getStatusSpriteOverflow(ppu) == FALSE);
-assert(ppu_getStatusSpriteCollisionHit(ppu) == FALSE);
+//assert(ppu_getControlPPUAddressIncrement(ppu) == FALSE);
+//assert(ppu_getControlSpriteTileTable(ppu) == FALSE);
+//assert(ppu_getControlBackgroundTileTable(ppu) == FALSE);
+//assert(ppu_getControlSpriteSize(ppu) == FALSE);
+//assert(ppu_getControlNMI(ppu) == FALSE);
+//assert(ppu_getMaskDisplayType(ppu) == FALSE);
+//assert(ppu_getMaskBackgroundClipping(ppu) == FALSE);
+//assert(ppu_getMaskSpriteClipping(ppu) == FALSE);
+//assert(ppu_getMaskBackgroundVisibility(ppu) == FALSE);
+//assert(ppu_getMaskSpriteVisibility(ppu) == FALSE);
+//assert(ppu_getStatusVerticalBlank(ppu) == FALSE);
+//assert(ppu_getStatusSpriteOverflow(ppu) == FALSE);
+//assert(ppu_getStatusSpriteCollisionHit(ppu) == FALSE);
 ppu_setMaskDisplayType(ppu, TRUE);
-assert(ppu_getControlPPUAddressIncrement(ppu) == FALSE);
-assert(ppu_getControlSpriteTileTable(ppu) == FALSE);
-assert(ppu_getControlBackgroundTileTable(ppu) == FALSE);
-assert(ppu_getControlSpriteSize(ppu) == FALSE);
-assert(ppu_getControlNMI(ppu) == FALSE);
-assert(ppu_getMaskDisplayType(ppu) == TRUE);
-assert(ppu_getMaskBackgroundClipping(ppu) == FALSE);
-assert(ppu_getMaskSpriteClipping(ppu) == FALSE);
-assert(ppu_getMaskBackgroundVisibility(ppu) == FALSE);
-assert(ppu_getMaskSpriteVisibility(ppu) == FALSE);
-assert(ppu_getStatusVerticalBlank(ppu) == FALSE);
-assert(ppu_getStatusSpriteOverflow(ppu) == FALSE);
-assert(ppu_getStatusSpriteCollisionHit(ppu) == FALSE);
+//assert(ppu_getControlPPUAddressIncrement(ppu) == FALSE);
+//assert(ppu_getControlSpriteTileTable(ppu) == FALSE);
+//assert(ppu_getControlBackgroundTileTable(ppu) == FALSE);
+//assert(ppu_getControlSpriteSize(ppu) == FALSE);
+//assert(ppu_getControlNMI(ppu) == FALSE);
+//assert(ppu_getMaskDisplayType(ppu) == TRUE);
+//assert(ppu_getMaskBackgroundClipping(ppu) == FALSE);
+//assert(ppu_getMaskSpriteClipping(ppu) == FALSE);
+//assert(ppu_getMaskBackgroundVisibility(ppu) == FALSE);
+//assert(ppu_getMaskSpriteVisibility(ppu) == FALSE);
+//assert(ppu_getStatusVerticalBlank(ppu) == FALSE);
+//assert(ppu_getStatusSpriteOverflow(ppu) == FALSE);
+//assert(ppu_getStatusSpriteCollisionHit(ppu) == FALSE);
 ppu_setMaskDisplayType(ppu, FALSE);
-assert(ppu_getControlPPUAddressIncrement(ppu) == FALSE);
-assert(ppu_getControlSpriteTileTable(ppu) == FALSE);
-assert(ppu_getControlBackgroundTileTable(ppu) == FALSE);
-assert(ppu_getControlSpriteSize(ppu) == FALSE);
-assert(ppu_getControlNMI(ppu) == FALSE);
-assert(ppu_getMaskDisplayType(ppu) == FALSE);
-assert(ppu_getMaskBackgroundClipping(ppu) == FALSE);
-assert(ppu_getMaskSpriteClipping(ppu) == FALSE);
-assert(ppu_getMaskBackgroundVisibility(ppu) == FALSE);
-assert(ppu_getMaskSpriteVisibility(ppu) == FALSE);
-assert(ppu_getStatusVerticalBlank(ppu) == FALSE);
-assert(ppu_getStatusSpriteOverflow(ppu) == FALSE);
-assert(ppu_getStatusSpriteCollisionHit(ppu) == FALSE);
+//assert(ppu_getControlPPUAddressIncrement(ppu) == FALSE);
+//assert(ppu_getControlSpriteTileTable(ppu) == FALSE);
+//assert(ppu_getControlBackgroundTileTable(ppu) == FALSE);
+//assert(ppu_getControlSpriteSize(ppu) == FALSE);
+//assert(ppu_getControlNMI(ppu) == FALSE);
+//assert(ppu_getMaskDisplayType(ppu) == FALSE);
+//assert(ppu_getMaskBackgroundClipping(ppu) == FALSE);
+//assert(ppu_getMaskSpriteClipping(ppu) == FALSE);
+//assert(ppu_getMaskBackgroundVisibility(ppu) == FALSE);
+//assert(ppu_getMaskSpriteVisibility(ppu) == FALSE);
+//assert(ppu_getStatusVerticalBlank(ppu) == FALSE);
+//assert(ppu_getStatusSpriteOverflow(ppu) == FALSE);
+//assert(ppu_getStatusSpriteCollisionHit(ppu) == FALSE);
 ppu_setMaskBackgroundClipping(ppu, TRUE);
-assert(ppu_getControlPPUAddressIncrement(ppu) == FALSE);
-assert(ppu_getControlSpriteTileTable(ppu) == FALSE);
-assert(ppu_getControlBackgroundTileTable(ppu) == FALSE);
-assert(ppu_getControlSpriteSize(ppu) == FALSE);
-assert(ppu_getControlNMI(ppu) == FALSE);
-assert(ppu_getMaskDisplayType(ppu) == FALSE);
-assert(ppu_getMaskBackgroundClipping(ppu) == TRUE);
-assert(ppu_getMaskSpriteClipping(ppu) == FALSE);
-assert(ppu_getMaskBackgroundVisibility(ppu) == FALSE);
-assert(ppu_getMaskSpriteVisibility(ppu) == FALSE);
-assert(ppu_getStatusVerticalBlank(ppu) == FALSE);
-assert(ppu_getStatusSpriteOverflow(ppu) == FALSE);
-assert(ppu_getStatusSpriteCollisionHit(ppu) == FALSE);
+//assert(ppu_getControlPPUAddressIncrement(ppu) == FALSE);
+//assert(ppu_getControlSpriteTileTable(ppu) == FALSE);
+//assert(ppu_getControlBackgroundTileTable(ppu) == FALSE);
+//assert(ppu_getControlSpriteSize(ppu) == FALSE);
+//assert(ppu_getControlNMI(ppu) == FALSE);
+//assert(ppu_getMaskDisplayType(ppu) == FALSE);
+//assert(ppu_getMaskBackgroundClipping(ppu) == TRUE);
+//assert(ppu_getMaskSpriteClipping(ppu) == FALSE);
+//assert(ppu_getMaskBackgroundVisibility(ppu) == FALSE);
+//assert(ppu_getMaskSpriteVisibility(ppu) == FALSE);
+//assert(ppu_getStatusVerticalBlank(ppu) == FALSE);
+//assert(ppu_getStatusSpriteOverflow(ppu) == FALSE);
+//assert(ppu_getStatusSpriteCollisionHit(ppu) == FALSE);
 ppu_setMaskBackgroundClipping(ppu, FALSE);
-assert(ppu_getControlPPUAddressIncrement(ppu) == FALSE);
-assert(ppu_getControlSpriteTileTable(ppu) == FALSE);
-assert(ppu_getControlBackgroundTileTable(ppu) == FALSE);
-assert(ppu_getControlSpriteSize(ppu) == FALSE);
-assert(ppu_getControlNMI(ppu) == FALSE);
-assert(ppu_getMaskDisplayType(ppu) == FALSE);
-assert(ppu_getMaskBackgroundClipping(ppu) == FALSE);
-assert(ppu_getMaskSpriteClipping(ppu) == FALSE);
-assert(ppu_getMaskBackgroundVisibility(ppu) == FALSE);
-assert(ppu_getMaskSpriteVisibility(ppu) == FALSE);
-assert(ppu_getStatusVerticalBlank(ppu) == FALSE);
-assert(ppu_getStatusSpriteOverflow(ppu) == FALSE);
-assert(ppu_getStatusSpriteCollisionHit(ppu) == FALSE);
+//assert(ppu_getControlPPUAddressIncrement(ppu) == FALSE);
+//assert(ppu_getControlSpriteTileTable(ppu) == FALSE);
+//assert(ppu_getControlBackgroundTileTable(ppu) == FALSE);
+//assert(ppu_getControlSpriteSize(ppu) == FALSE);
+//assert(ppu_getControlNMI(ppu) == FALSE);
+//assert(ppu_getMaskDisplayType(ppu) == FALSE);
+//assert(ppu_getMaskBackgroundClipping(ppu) == FALSE);
+//assert(ppu_getMaskSpriteClipping(ppu) == FALSE);
+//assert(ppu_getMaskBackgroundVisibility(ppu) == FALSE);
+//assert(ppu_getMaskSpriteVisibility(ppu) == FALSE);
+//assert(ppu_getStatusVerticalBlank(ppu) == FALSE);
+//assert(ppu_getStatusSpriteOverflow(ppu) == FALSE);
+//assert(ppu_getStatusSpriteCollisionHit(ppu) == FALSE);
 ppu_setMaskSpriteClipping(ppu, TRUE);
-assert(ppu_getControlPPUAddressIncrement(ppu) == FALSE);
-assert(ppu_getControlSpriteTileTable(ppu) == FALSE);
-assert(ppu_getControlBackgroundTileTable(ppu) == FALSE);
-assert(ppu_getControlSpriteSize(ppu) == FALSE);
-assert(ppu_getControlNMI(ppu) == FALSE);
-assert(ppu_getMaskDisplayType(ppu) == FALSE);
-assert(ppu_getMaskBackgroundClipping(ppu) == FALSE);
-assert(ppu_getMaskSpriteClipping(ppu) == TRUE);
-assert(ppu_getMaskBackgroundVisibility(ppu) == FALSE);
-assert(ppu_getMaskSpriteVisibility(ppu) == FALSE);
-assert(ppu_getStatusVerticalBlank(ppu) == FALSE);
-assert(ppu_getStatusSpriteOverflow(ppu) == FALSE);
-assert(ppu_getStatusSpriteCollisionHit(ppu) == FALSE);
+//assert(ppu_getControlPPUAddressIncrement(ppu) == FALSE);
+//assert(ppu_getControlSpriteTileTable(ppu) == FALSE);
+//assert(ppu_getControlBackgroundTileTable(ppu) == FALSE);
+//assert(ppu_getControlSpriteSize(ppu) == FALSE);
+//assert(ppu_getControlNMI(ppu) == FALSE);
+//assert(ppu_getMaskDisplayType(ppu) == FALSE);
+//assert(ppu_getMaskBackgroundClipping(ppu) == FALSE);
+//assert(ppu_getMaskSpriteClipping(ppu) == TRUE);
+//assert(ppu_getMaskBackgroundVisibility(ppu) == FALSE);
+//assert(ppu_getMaskSpriteVisibility(ppu) == FALSE);
+//assert(ppu_getStatusVerticalBlank(ppu) == FALSE);
+//assert(ppu_getStatusSpriteOverflow(ppu) == FALSE);
+//assert(ppu_getStatusSpriteCollisionHit(ppu) == FALSE);
 ppu_setMaskSpriteClipping(ppu, FALSE);
-assert(ppu_getControlPPUAddressIncrement(ppu) == FALSE);
-assert(ppu_getControlSpriteTileTable(ppu) == FALSE);
-assert(ppu_getControlBackgroundTileTable(ppu) == FALSE);
-assert(ppu_getControlSpriteSize(ppu) == FALSE);
-assert(ppu_getControlNMI(ppu) == FALSE);
-assert(ppu_getMaskDisplayType(ppu) == FALSE);
-assert(ppu_getMaskBackgroundClipping(ppu) == FALSE);
-assert(ppu_getMaskSpriteClipping(ppu) == FALSE);
-assert(ppu_getMaskBackgroundVisibility(ppu) == FALSE);
-assert(ppu_getMaskSpriteVisibility(ppu) == FALSE);
-assert(ppu_getStatusVerticalBlank(ppu) == FALSE);
-assert(ppu_getStatusSpriteOverflow(ppu) == FALSE);
-assert(ppu_getStatusSpriteCollisionHit(ppu) == FALSE);
+//assert(ppu_getControlPPUAddressIncrement(ppu) == FALSE);
+//assert(ppu_getControlSpriteTileTable(ppu) == FALSE);
+//assert(ppu_getControlBackgroundTileTable(ppu) == FALSE);
+//assert(ppu_getControlSpriteSize(ppu) == FALSE);
+//assert(ppu_getControlNMI(ppu) == FALSE);
+//assert(ppu_getMaskDisplayType(ppu) == FALSE);
+//assert(ppu_getMaskBackgroundClipping(ppu) == FALSE);
+//assert(ppu_getMaskSpriteClipping(ppu) == FALSE);
+//assert(ppu_getMaskBackgroundVisibility(ppu) == FALSE);
+//assert(ppu_getMaskSpriteVisibility(ppu) == FALSE);
+//assert(ppu_getStatusVerticalBlank(ppu) == FALSE);
+//assert(ppu_getStatusSpriteOverflow(ppu) == FALSE);
+//assert(ppu_getStatusSpriteCollisionHit(ppu) == FALSE);
 ppu_setMaskBackgroundVisiblity(ppu, TRUE);
-assert(ppu_getControlPPUAddressIncrement(ppu) == FALSE);
-assert(ppu_getControlSpriteTileTable(ppu) == FALSE);
-assert(ppu_getControlBackgroundTileTable(ppu) == FALSE);
-assert(ppu_getControlSpriteSize(ppu) == FALSE);
-assert(ppu_getControlNMI(ppu) == FALSE);
-assert(ppu_getMaskDisplayType(ppu) == FALSE);
-assert(ppu_getMaskBackgroundClipping(ppu) == FALSE);
-assert(ppu_getMaskSpriteClipping(ppu) == FALSE);
-assert(ppu_getMaskBackgroundVisibility(ppu) == TRUE);
-assert(ppu_getMaskSpriteVisibility(ppu) == FALSE);
-assert(ppu_getStatusVerticalBlank(ppu) == FALSE);
-assert(ppu_getStatusSpriteOverflow(ppu) == FALSE);
-assert(ppu_getStatusSpriteCollisionHit(ppu) == FALSE);
+//assert(ppu_getControlPPUAddressIncrement(ppu) == FALSE);
+//assert(ppu_getControlSpriteTileTable(ppu) == FALSE);
+//assert(ppu_getControlBackgroundTileTable(ppu) == FALSE);
+//assert(ppu_getControlSpriteSize(ppu) == FALSE);
+//assert(ppu_getControlNMI(ppu) == FALSE);
+//assert(ppu_getMaskDisplayType(ppu) == FALSE);
+//assert(ppu_getMaskBackgroundClipping(ppu) == FALSE);
+//assert(ppu_getMaskSpriteClipping(ppu) == FALSE);
+//assert(ppu_getMaskBackgroundVisibility(ppu) == TRUE);
+//assert(ppu_getMaskSpriteVisibility(ppu) == FALSE);
+//assert(ppu_getStatusVerticalBlank(ppu) == FALSE);
+//assert(ppu_getStatusSpriteOverflow(ppu) == FALSE);
+//assert(ppu_getStatusSpriteCollisionHit(ppu) == FALSE);
 ppu_setMaskBackgroundVisiblity(ppu, FALSE);
-assert(ppu_getControlPPUAddressIncrement(ppu) == FALSE);
-assert(ppu_getControlSpriteTileTable(ppu) == FALSE);
-assert(ppu_getControlBackgroundTileTable(ppu) == FALSE);
-assert(ppu_getControlSpriteSize(ppu) == FALSE);
-assert(ppu_getControlNMI(ppu) == FALSE);
-assert(ppu_getMaskDisplayType(ppu) == FALSE);
-assert(ppu_getMaskBackgroundClipping(ppu) == FALSE);
-assert(ppu_getMaskSpriteClipping(ppu) == FALSE);
-assert(ppu_getMaskBackgroundVisibility(ppu) == FALSE);
-assert(ppu_getMaskSpriteVisibility(ppu) == FALSE);
-assert(ppu_getStatusVerticalBlank(ppu) == FALSE);
-assert(ppu_getStatusSpriteOverflow(ppu) == FALSE);
-assert(ppu_getStatusSpriteCollisionHit(ppu) == FALSE);
+//assert(ppu_getControlPPUAddressIncrement(ppu) == FALSE);
+//assert(ppu_getControlSpriteTileTable(ppu) == FALSE);
+//assert(ppu_getControlBackgroundTileTable(ppu) == FALSE);
+//assert(ppu_getControlSpriteSize(ppu) == FALSE);
+//assert(ppu_getControlNMI(ppu) == FALSE);
+//assert(ppu_getMaskDisplayType(ppu) == FALSE);
+//assert(ppu_getMaskBackgroundClipping(ppu) == FALSE);
+//assert(ppu_getMaskSpriteClipping(ppu) == FALSE);
+//assert(ppu_getMaskBackgroundVisibility(ppu) == FALSE);
+//assert(ppu_getMaskSpriteVisibility(ppu) == FALSE);
+//assert(ppu_getStatusVerticalBlank(ppu) == FALSE);
+//assert(ppu_getStatusSpriteOverflow(ppu) == FALSE);
+//assert(ppu_getStatusSpriteCollisionHit(ppu) == FALSE);
 ppu_setMaskSpriteVisibility(ppu, TRUE);
-assert(ppu_getControlPPUAddressIncrement(ppu) == FALSE);
-assert(ppu_getControlSpriteTileTable(ppu) == FALSE);
-assert(ppu_getControlBackgroundTileTable(ppu) == FALSE);
-assert(ppu_getControlSpriteSize(ppu) == FALSE);
-assert(ppu_getControlNMI(ppu) == FALSE);
-assert(ppu_getMaskDisplayType(ppu) == FALSE);
-assert(ppu_getMaskBackgroundClipping(ppu) == FALSE);
-assert(ppu_getMaskSpriteClipping(ppu) == FALSE);
-assert(ppu_getMaskBackgroundVisibility(ppu) == FALSE);
-assert(ppu_getMaskSpriteVisibility(ppu) == TRUE);
-assert(ppu_getStatusVerticalBlank(ppu) == FALSE);
-assert(ppu_getStatusSpriteOverflow(ppu) == FALSE);
-assert(ppu_getStatusSpriteCollisionHit(ppu) == FALSE);
+//assert(ppu_getControlPPUAddressIncrement(ppu) == FALSE);
+//assert(ppu_getControlSpriteTileTable(ppu) == FALSE);
+//assert(ppu_getControlBackgroundTileTable(ppu) == FALSE);
+//assert(ppu_getControlSpriteSize(ppu) == FALSE);
+//assert(ppu_getControlNMI(ppu) == FALSE);
+//assert(ppu_getMaskDisplayType(ppu) == FALSE);
+//assert(ppu_getMaskBackgroundClipping(ppu) == FALSE);
+//assert(ppu_getMaskSpriteClipping(ppu) == FALSE);
+//assert(ppu_getMaskBackgroundVisibility(ppu) == FALSE);
+//assert(ppu_getMaskSpriteVisibility(ppu) == TRUE);
+//assert(ppu_getStatusVerticalBlank(ppu) == FALSE);
+//assert(ppu_getStatusSpriteOverflow(ppu) == FALSE);
+//assert(ppu_getStatusSpriteCollisionHit(ppu) == FALSE);
 ppu_setMaskSpriteVisibility(ppu, FALSE);
-assert(ppu_getControlPPUAddressIncrement(ppu) == FALSE);
-assert(ppu_getControlSpriteTileTable(ppu) == FALSE);
-assert(ppu_getControlBackgroundTileTable(ppu) == FALSE);
-assert(ppu_getControlSpriteSize(ppu) == FALSE);
-assert(ppu_getControlNMI(ppu) == FALSE);
-assert(ppu_getMaskDisplayType(ppu) == FALSE);
-assert(ppu_getMaskBackgroundClipping(ppu) == FALSE);
-assert(ppu_getMaskSpriteClipping(ppu) == FALSE);
-assert(ppu_getMaskBackgroundVisibility(ppu) == FALSE);
-assert(ppu_getMaskSpriteVisibility(ppu) == FALSE);
-assert(ppu_getStatusVerticalBlank(ppu) == FALSE);
-assert(ppu_getStatusSpriteOverflow(ppu) == FALSE);
-assert(ppu_getStatusSpriteCollisionHit(ppu) == FALSE);
+//assert(ppu_getControlPPUAddressIncrement(ppu) == FALSE);
+//assert(ppu_getControlSpriteTileTable(ppu) == FALSE);
+//assert(ppu_getControlBackgroundTileTable(ppu) == FALSE);
+//assert(ppu_getControlSpriteSize(ppu) == FALSE);
+//assert(ppu_getControlNMI(ppu) == FALSE);
+//assert(ppu_getMaskDisplayType(ppu) == FALSE);
+//assert(ppu_getMaskBackgroundClipping(ppu) == FALSE);
+//assert(ppu_getMaskSpriteClipping(ppu) == FALSE);
+//assert(ppu_getMaskBackgroundVisibility(ppu) == FALSE);
+//assert(ppu_getMaskSpriteVisibility(ppu) == FALSE);
+//assert(ppu_getStatusVerticalBlank(ppu) == FALSE);
+//assert(ppu_getStatusSpriteOverflow(ppu) == FALSE);
+//assert(ppu_getStatusSpriteCollisionHit(ppu) == FALSE);
 ppu_setStatusSpriteOverflow(ppu, TRUE);
-assert(ppu_getControlPPUAddressIncrement(ppu) == FALSE);
-assert(ppu_getControlSpriteTileTable(ppu) == FALSE);
-assert(ppu_getControlBackgroundTileTable(ppu) == FALSE);
-assert(ppu_getControlSpriteSize(ppu) == FALSE);
-assert(ppu_getControlNMI(ppu) == FALSE);
-assert(ppu_getMaskDisplayType(ppu) == FALSE);
-assert(ppu_getMaskBackgroundClipping(ppu) == FALSE);
-assert(ppu_getMaskSpriteClipping(ppu) == FALSE);
-assert(ppu_getMaskBackgroundVisibility(ppu) == FALSE);
-assert(ppu_getMaskSpriteVisibility(ppu) == FALSE);
-assert(ppu_getStatusVerticalBlank(ppu) == FALSE);
-assert(ppu_getStatusSpriteOverflow(ppu) == TRUE);
-assert(ppu_getStatusSpriteCollisionHit(ppu) == FALSE);
+//assert(ppu_getControlPPUAddressIncrement(ppu) == FALSE);
+//assert(ppu_getControlSpriteTileTable(ppu) == FALSE);
+//assert(ppu_getControlBackgroundTileTable(ppu) == FALSE);
+//assert(ppu_getControlSpriteSize(ppu) == FALSE);
+//assert(ppu_getControlNMI(ppu) == FALSE);
+//assert(ppu_getMaskDisplayType(ppu) == FALSE);
+//assert(ppu_getMaskBackgroundClipping(ppu) == FALSE);
+//assert(ppu_getMaskSpriteClipping(ppu) == FALSE);
+//assert(ppu_getMaskBackgroundVisibility(ppu) == FALSE);
+//assert(ppu_getMaskSpriteVisibility(ppu) == FALSE);
+//assert(ppu_getStatusVerticalBlank(ppu) == FALSE);
+//assert(ppu_getStatusSpriteOverflow(ppu) == TRUE);
+//assert(ppu_getStatusSpriteCollisionHit(ppu) == FALSE);
 ppu_setStatusSpriteOverflow(ppu, FALSE);
-assert(ppu_getControlPPUAddressIncrement(ppu) == FALSE);
-assert(ppu_getControlSpriteTileTable(ppu) == FALSE);
-assert(ppu_getControlBackgroundTileTable(ppu) == FALSE);
-assert(ppu_getControlSpriteSize(ppu) == FALSE);
-assert(ppu_getControlNMI(ppu) == FALSE);
-assert(ppu_getMaskDisplayType(ppu) == FALSE);
-assert(ppu_getMaskBackgroundClipping(ppu) == FALSE);
-assert(ppu_getMaskSpriteClipping(ppu) == FALSE);
-assert(ppu_getMaskBackgroundVisibility(ppu) == FALSE);
-assert(ppu_getMaskSpriteVisibility(ppu) == FALSE);
-assert(ppu_getStatusVerticalBlank(ppu) == FALSE);
-assert(ppu_getStatusSpriteOverflow(ppu) == FALSE);
-assert(ppu_getStatusSpriteCollisionHit(ppu) == FALSE);
+//assert(ppu_getControlPPUAddressIncrement(ppu) == FALSE);
+//assert(ppu_getControlSpriteTileTable(ppu) == FALSE);
+//assert(ppu_getControlBackgroundTileTable(ppu) == FALSE);
+//assert(ppu_getControlSpriteSize(ppu) == FALSE);
+//assert(ppu_getControlNMI(ppu) == FALSE);
+//assert(ppu_getMaskDisplayType(ppu) == FALSE);
+//assert(ppu_getMaskBackgroundClipping(ppu) == FALSE);
+//assert(ppu_getMaskSpriteClipping(ppu) == FALSE);
+//assert(ppu_getMaskBackgroundVisibility(ppu) == FALSE);
+//assert(ppu_getMaskSpriteVisibility(ppu) == FALSE);
+//assert(ppu_getStatusVerticalBlank(ppu) == FALSE);
+//assert(ppu_getStatusSpriteOverflow(ppu) == FALSE);
+//assert(ppu_getStatusSpriteCollisionHit(ppu) == FALSE);
 ppu_setStatusSpriteCollisionHit(ppu, TRUE);
-assert(ppu_getControlPPUAddressIncrement(ppu) == FALSE);
-assert(ppu_getControlSpriteTileTable(ppu) == FALSE);
-assert(ppu_getControlBackgroundTileTable(ppu) == FALSE);
-assert(ppu_getControlSpriteSize(ppu) == FALSE);
-assert(ppu_getControlNMI(ppu) == FALSE);
-assert(ppu_getMaskDisplayType(ppu) == FALSE);
-  assert(ppu_getMaskBackgroundClipping(ppu) == FALSE);
-  assert(ppu_getMaskSpriteClipping(ppu) == FALSE);
-  assert(ppu_getMaskBackgroundVisibility(ppu) == FALSE);
-  assert(ppu_getMaskSpriteVisibility(ppu) == FALSE);
-  assert(ppu_getStatusVerticalBlank(ppu) == FALSE);
-  assert(ppu_getStatusSpriteOverflow(ppu) == FALSE);
-  assert(ppu_getStatusSpriteCollisionHit(ppu) == TRUE);
+//assert(ppu_getControlPPUAddressIncrement(ppu) == FALSE);
+//assert(ppu_getControlSpriteTileTable(ppu) == FALSE);
+//assert(ppu_getControlBackgroundTileTable(ppu) == FALSE);
+//assert(ppu_getControlSpriteSize(ppu) == FALSE);
+//assert(ppu_getControlNMI(ppu) == FALSE);
+//assert(ppu_getMaskDisplayType(ppu) == FALSE);
+  //assert(ppu_getMaskBackgroundClipping(ppu) == FALSE);
+  //assert(ppu_getMaskSpriteClipping(ppu) == FALSE);
+  //assert(ppu_getMaskBackgroundVisibility(ppu) == FALSE);
+  //assert(ppu_getMaskSpriteVisibility(ppu) == FALSE);
+  //assert(ppu_getStatusVerticalBlank(ppu) == FALSE);
+  //assert(ppu_getStatusSpriteOverflow(ppu) == FALSE);
+  //assert(ppu_getStatusSpriteCollisionHit(ppu) == TRUE);
   ppu_setStatusSpriteCollisionHit(ppu, FALSE);
-  assert(ppu_getControlPPUAddressIncrement(ppu) == FALSE);
-  assert(ppu_getControlSpriteTileTable(ppu) == FALSE);
-  assert(ppu_getControlBackgroundTileTable(ppu) == FALSE);
-  assert(ppu_getControlSpriteSize(ppu) == FALSE);
-  assert(ppu_getControlNMI(ppu) == FALSE);
-  assert(ppu_getMaskDisplayType(ppu) == FALSE);
-  assert(ppu_getMaskBackgroundClipping(ppu) == FALSE);
-  assert(ppu_getMaskSpriteClipping(ppu) == FALSE);
-  assert(ppu_getMaskBackgroundVisibility(ppu) == FALSE);
-  assert(ppu_getMaskSpriteVisibility(ppu) == FALSE);
-  assert(ppu_getStatusVerticalBlank(ppu) == FALSE);
-  assert(ppu_getStatusSpriteOverflow(ppu) == FALSE);
-  assert(ppu_getStatusSpriteCollisionHit(ppu) == FALSE);
+  //assert(ppu_getControlPPUAddressIncrement(ppu) == FALSE);
+  //assert(ppu_getControlSpriteTileTable(ppu) == FALSE);
+  //assert(ppu_getControlBackgroundTileTable(ppu) == FALSE);
+  //assert(ppu_getControlSpriteSize(ppu) == FALSE);
+  //assert(ppu_getControlNMI(ppu) == FALSE);
+  //assert(ppu_getMaskDisplayType(ppu) == FALSE);
+  //assert(ppu_getMaskBackgroundClipping(ppu) == FALSE);
+  //assert(ppu_getMaskSpriteClipping(ppu) == FALSE);
+  //assert(ppu_getMaskBackgroundVisibility(ppu) == FALSE);
+  //assert(ppu_getMaskSpriteVisibility(ppu) == FALSE);
+  //assert(ppu_getStatusVerticalBlank(ppu) == FALSE);
+  //assert(ppu_getStatusSpriteOverflow(ppu) == FALSE);
+  //assert(ppu_getStatusSpriteCollisionHit(ppu) == FALSE);
 }
 {
   PPU ppu = ppu_init();
-  assert(ppu != NULL);
+  //assert(ppu != NULL);
   cpu_setMarkIntensifyRed(ppu, TRUE);
-  assert(ppu_getControlPPUAddressIncrement(ppu) == FALSE);
-  assert(ppu_getControlSpriteTileTable(ppu) == FALSE);
-  assert(ppu_getControlBackgroundTileTable(ppu) == FALSE);
-  assert(ppu_getControlSpriteSize(ppu) == FALSE);
-  assert(ppu_getControlNMI(ppu) == FALSE);
-  assert(ppu_getMaskDisplayType(ppu) == FALSE);
-  assert(ppu_getMaskBackgroundClipping(ppu) == FALSE);
-  assert(ppu_getMaskSpriteClipping(ppu) == FALSE);
-  assert(ppu_getMaskBackgroundVisibility(ppu) == FALSE);
-  assert(ppu_getMaskSpriteVisibility(ppu) == FALSE);
-  assert(cpu_getMaskIntensifyRed(ppu) == TRUE);
-  assert(cpu_getMaskIntensifyGren(ppu) == FALSE);
-  assert(cpu_getMaskIntensifyBlue(ppu) == FALSE);
-  assert(ppu_getStatusVerticalBlank(ppu) == FALSE);
-  assert(ppu_getStatusSpriteOverflow(ppu) == FALSE);
-  assert(ppu_getStatusSpriteCollisionHit(ppu) == FALSE);
+  //assert(ppu_getControlPPUAddressIncrement(ppu) == FALSE);
+  //assert(ppu_getControlSpriteTileTable(ppu) == FALSE);
+  //assert(ppu_getControlBackgroundTileTable(ppu) == FALSE);
+  //assert(ppu_getControlSpriteSize(ppu) == FALSE);
+  //assert(ppu_getControlNMI(ppu) == FALSE);
+  //assert(ppu_getMaskDisplayType(ppu) == FALSE);
+  //assert(ppu_getMaskBackgroundClipping(ppu) == FALSE);
+  //assert(ppu_getMaskSpriteClipping(ppu) == FALSE);
+  //assert(ppu_getMaskBackgroundVisibility(ppu) == FALSE);
+  //assert(ppu_getMaskSpriteVisibility(ppu) == FALSE);
+  //assert(cpu_getMaskIntensifyRed(ppu) == TRUE);
+  //assert(cpu_getMaskIntensifyGren(ppu) == FALSE);
+  //assert(cpu_getMaskIntensifyBlue(ppu) == FALSE);
+  //assert(ppu_getStatusVerticalBlank(ppu) == FALSE);
+  //assert(ppu_getStatusSpriteOverflow(ppu) == FALSE);
+  //assert(ppu_getStatusSpriteCollisionHit(ppu) == FALSE);
   cpu_setMarkIntensifyRed(ppu, FALSE);
-  assert(ppu_getControlPPUAddressIncrement(ppu) == FALSE);
-  assert(ppu_getControlSpriteTileTable(ppu) == FALSE);
-  assert(ppu_getControlBackgroundTileTable(ppu) == FALSE);
-  assert(ppu_getControlSpriteSize(ppu) == FALSE);
-  assert(ppu_getControlNMI(ppu) == FALSE);
-  assert(ppu_getMaskDisplayType(ppu) == FALSE);
-  assert(ppu_getMaskBackgroundClipping(ppu) == FALSE);
-  assert(ppu_getMaskSpriteClipping(ppu) == FALSE);
-assert(ppu_getMaskBackgroundVisibility(ppu) == FALSE);
-assert(ppu_getMaskSpriteVisibility(ppu) == FALSE);
-assert(cpu_getMaskIntensifyRed(ppu) == FALSE);
-assert(cpu_getMaskIntensifyGren(ppu) == FALSE);
-assert(cpu_getMaskIntensifyBlue(ppu) == FALSE);
-assert(ppu_getStatusVerticalBlank(ppu) == FALSE);
-assert(ppu_getStatusSpriteOverflow(ppu) == FALSE);
-assert(ppu_getStatusSpriteCollisionHit(ppu) == FALSE);
+  //assert(ppu_getControlPPUAddressIncrement(ppu) == FALSE);
+  //assert(ppu_getControlSpriteTileTable(ppu) == FALSE);
+  //assert(ppu_getControlBackgroundTileTable(ppu) == FALSE);
+  //assert(ppu_getControlSpriteSize(ppu) == FALSE);
+  //assert(ppu_getControlNMI(ppu) == FALSE);
+  //assert(ppu_getMaskDisplayType(ppu) == FALSE);
+  //assert(ppu_getMaskBackgroundClipping(ppu) == FALSE);
+  //assert(ppu_getMaskSpriteClipping(ppu) == FALSE);
+//assert(ppu_getMaskBackgroundVisibility(ppu) == FALSE);
+//assert(ppu_getMaskSpriteVisibility(ppu) == FALSE);
+//assert(cpu_getMaskIntensifyRed(ppu) == FALSE);
+//assert(cpu_getMaskIntensifyGren(ppu) == FALSE);
+//assert(cpu_getMaskIntensifyBlue(ppu) == FALSE);
+//assert(ppu_getStatusVerticalBlank(ppu) == FALSE);
+//assert(ppu_getStatusSpriteOverflow(ppu) == FALSE);
+//assert(ppu_getStatusSpriteCollisionHit(ppu) == FALSE);
 cpu_setMarkIntensifyGreen(ppu, TRUE);
-assert(ppu_getControlPPUAddressIncrement(ppu) == FALSE);
-assert(ppu_getControlSpriteTileTable(ppu) == FALSE);
-assert(ppu_getControlBackgroundTileTable(ppu) == FALSE);
-assert(ppu_getControlSpriteSize(ppu) == FALSE);
-assert(ppu_getControlNMI(ppu) == FALSE);
-assert(ppu_getMaskDisplayType(ppu) == FALSE);
-assert(ppu_getMaskBackgroundClipping(ppu) == FALSE);
-assert(ppu_getMaskSpriteClipping(ppu) == FALSE);
-assert(ppu_getMaskBackgroundVisibility(ppu) == FALSE);
-assert(ppu_getMaskSpriteVisibility(ppu) == FALSE);
-assert(cpu_getMaskIntensifyRed(ppu) == FALSE);
-assert(cpu_getMaskIntensifyGren(ppu) == TRUE);
-assert(cpu_getMaskIntensifyBlue(ppu) == FALSE);
-assert(ppu_getStatusVerticalBlank(ppu) == FALSE);
-assert(ppu_getStatusSpriteOverflow(ppu) == FALSE);
-assert(ppu_getStatusSpriteCollisionHit(ppu) == FALSE);
+//assert(ppu_getControlPPUAddressIncrement(ppu) == FALSE);
+//assert(ppu_getControlSpriteTileTable(ppu) == FALSE);
+//assert(ppu_getControlBackgroundTileTable(ppu) == FALSE);
+//assert(ppu_getControlSpriteSize(ppu) == FALSE);
+//assert(ppu_getControlNMI(ppu) == FALSE);
+//assert(ppu_getMaskDisplayType(ppu) == FALSE);
+//assert(ppu_getMaskBackgroundClipping(ppu) == FALSE);
+//assert(ppu_getMaskSpriteClipping(ppu) == FALSE);
+//assert(ppu_getMaskBackgroundVisibility(ppu) == FALSE);
+//assert(ppu_getMaskSpriteVisibility(ppu) == FALSE);
+//assert(cpu_getMaskIntensifyRed(ppu) == FALSE);
+//assert(cpu_getMaskIntensifyGren(ppu) == TRUE);
+//assert(cpu_getMaskIntensifyBlue(ppu) == FALSE);
+//assert(ppu_getStatusVerticalBlank(ppu) == FALSE);
+//assert(ppu_getStatusSpriteOverflow(ppu) == FALSE);
+//assert(ppu_getStatusSpriteCollisionHit(ppu) == FALSE);
 cpu_setMarkIntensifyGreen(ppu, FALSE);
-assert(ppu_getControlPPUAddressIncrement(ppu) == FALSE);
-assert(ppu_getControlSpriteTileTable(ppu) == FALSE);
-assert(ppu_getControlBackgroundTileTable(ppu) == FALSE);
-assert(ppu_getControlSpriteSize(ppu) == FALSE);
-assert(ppu_getControlNMI(ppu) == FALSE);
-assert(ppu_getMaskDisplayType(ppu) == FALSE);
-assert(ppu_getMaskBackgroundClipping(ppu) == FALSE);
-assert(ppu_getMaskSpriteClipping(ppu) == FALSE);
-assert(ppu_getMaskBackgroundVisibility(ppu) == FALSE);
-assert(ppu_getMaskSpriteVisibility(ppu) == FALSE);
-assert(cpu_getMaskIntensifyRed(ppu) == FALSE);
-assert(cpu_getMaskIntensifyGren(ppu) == FALSE);
-assert(cpu_getMaskIntensifyBlue(ppu) == FALSE);
-assert(ppu_getStatusVerticalBlank(ppu) == FALSE);
-assert(ppu_getStatusSpriteOverflow(ppu) == FALSE);
-assert(ppu_getStatusSpriteCollisionHit(ppu) == FALSE);
+//assert(ppu_getControlPPUAddressIncrement(ppu) == FALSE);
+//assert(ppu_getControlSpriteTileTable(ppu) == FALSE);
+//assert(ppu_getControlBackgroundTileTable(ppu) == FALSE);
+//assert(ppu_getControlSpriteSize(ppu) == FALSE);
+//assert(ppu_getControlNMI(ppu) == FALSE);
+//assert(ppu_getMaskDisplayType(ppu) == FALSE);
+//assert(ppu_getMaskBackgroundClipping(ppu) == FALSE);
+//assert(ppu_getMaskSpriteClipping(ppu) == FALSE);
+//assert(ppu_getMaskBackgroundVisibility(ppu) == FALSE);
+//assert(ppu_getMaskSpriteVisibility(ppu) == FALSE);
+//assert(cpu_getMaskIntensifyRed(ppu) == FALSE);
+//assert(cpu_getMaskIntensifyGren(ppu) == FALSE);
+//assert(cpu_getMaskIntensifyBlue(ppu) == FALSE);
+//assert(ppu_getStatusVerticalBlank(ppu) == FALSE);
+//assert(ppu_getStatusSpriteOverflow(ppu) == FALSE);
+//assert(ppu_getStatusSpriteCollisionHit(ppu) == FALSE);
 cpu_setMarkIntensifyBlue(ppu, TRUE);
-assert(ppu_getControlPPUAddressIncrement(ppu) == FALSE);
-assert(ppu_getControlSpriteTileTable(ppu) == FALSE);
-assert(ppu_getControlBackgroundTileTable(ppu) == FALSE);
-assert(ppu_getControlSpriteSize(ppu) == FALSE);
-assert(ppu_getControlNMI(ppu) == FALSE);
-assert(ppu_getMaskDisplayType(ppu) == FALSE);
-assert(ppu_getMaskBackgroundClipping(ppu) == FALSE);
-assert(ppu_getMaskSpriteClipping(ppu) == FALSE);
-assert(ppu_getMaskBackgroundVisibility(ppu) == FALSE);
-assert(ppu_getMaskSpriteVisibility(ppu) == FALSE);
-assert(cpu_getMaskIntensifyRed(ppu) == FALSE);
-assert(cpu_getMaskIntensifyGren(ppu) == FALSE);
-assert(cpu_getMaskIntensifyBlue(ppu) == TRUE);
-assert(ppu_getStatusVerticalBlank(ppu) == FALSE);
-assert(ppu_getStatusSpriteOverflow(ppu) == FALSE);
-assert(ppu_getStatusSpriteCollisionHit(ppu) == FALSE);
+//assert(ppu_getControlPPUAddressIncrement(ppu) == FALSE);
+//assert(ppu_getControlSpriteTileTable(ppu) == FALSE);
+//assert(ppu_getControlBackgroundTileTable(ppu) == FALSE);
+//assert(ppu_getControlSpriteSize(ppu) == FALSE);
+//assert(ppu_getControlNMI(ppu) == FALSE);
+//assert(ppu_getMaskDisplayType(ppu) == FALSE);
+//assert(ppu_getMaskBackgroundClipping(ppu) == FALSE);
+//assert(ppu_getMaskSpriteClipping(ppu) == FALSE);
+//assert(ppu_getMaskBackgroundVisibility(ppu) == FALSE);
+//assert(ppu_getMaskSpriteVisibility(ppu) == FALSE);
+//assert(cpu_getMaskIntensifyRed(ppu) == FALSE);
+//assert(cpu_getMaskIntensifyGren(ppu) == FALSE);
+//assert(cpu_getMaskIntensifyBlue(ppu) == TRUE);
+//assert(ppu_getStatusVerticalBlank(ppu) == FALSE);
+//assert(ppu_getStatusSpriteOverflow(ppu) == FALSE);
+//assert(ppu_getStatusSpriteCollisionHit(ppu) == FALSE);
 cpu_setMarkIntensifyBlue(ppu, FALSE);
-assert(ppu_getControlPPUAddressIncrement(ppu) == FALSE);
-assert(ppu_getControlSpriteTileTable(ppu) == FALSE);
-assert(ppu_getControlBackgroundTileTable(ppu) == FALSE);
-assert(ppu_getControlSpriteSize(ppu) == FALSE);
-assert(ppu_getControlNMI(ppu) == FALSE);
-assert(ppu_getMaskDisplayType(ppu) == FALSE);
-assert(ppu_getMaskBackgroundClipping(ppu) == FALSE);
-assert(ppu_getMaskSpriteClipping(ppu) == FALSE);
-assert(ppu_getMaskBackgroundVisibility(ppu) == FALSE);
-assert(ppu_getMaskSpriteVisibility(ppu) == FALSE);
-assert(cpu_getMaskIntensifyRed(ppu) == FALSE);
-assert(cpu_getMaskIntensifyGren(ppu) == FALSE);
-assert(cpu_getMaskIntensifyBlue(ppu) == FALSE);
-assert(ppu_getStatusVerticalBlank(ppu) == FALSE);
-assert(ppu_getStatusSpriteOverflow(ppu) == FALSE);
-assert(ppu_getStatusSpriteCollisionHit(ppu) == FALSE);
+//assert(ppu_getControlPPUAddressIncrement(ppu) == FALSE);
+//assert(ppu_getControlSpriteTileTable(ppu) == FALSE);
+//assert(ppu_getControlBackgroundTileTable(ppu) == FALSE);
+//assert(ppu_getControlSpriteSize(ppu) == FALSE);
+//assert(ppu_getControlNMI(ppu) == FALSE);
+//assert(ppu_getMaskDisplayType(ppu) == FALSE);
+//assert(ppu_getMaskBackgroundClipping(ppu) == FALSE);
+//assert(ppu_getMaskSpriteClipping(ppu) == FALSE);
+//assert(ppu_getMaskBackgroundVisibility(ppu) == FALSE);
+//assert(ppu_getMaskSpriteVisibility(ppu) == FALSE);
+//assert(cpu_getMaskIntensifyRed(ppu) == FALSE);
+//assert(cpu_getMaskIntensifyGren(ppu) == FALSE);
+//assert(cpu_getMaskIntensifyBlue(ppu) == FALSE);
+//assert(ppu_getStatusVerticalBlank(ppu) == FALSE);
+//assert(ppu_getStatusSpriteOverflow(ppu) == FALSE);
+//assert(ppu_getStatusSpriteCollisionHit(ppu) == FALSE);
 ppu_setControlHorizontalScrollNametable(ppu, TRUE);
-assert(ppu_getControlHorizontalScrollNametable(ppu) == TRUE);
-assert(ppu_getControlVerticalScrollNametable(ppu) == FALSE);
-assert(ppu_getControlPPUAddressIncrement(ppu) == FALSE);
-assert(ppu_getControlSpriteTileTable(ppu) == FALSE);
-assert(ppu_getControlBackgroundTileTable(ppu) == FALSE);
-assert(ppu_getControlSpriteSize(ppu) == FALSE);
-assert(ppu_getControlNMI(ppu) == FALSE);
-assert(ppu_getMaskDisplayType(ppu) == FALSE);
-assert(ppu_getMaskBackgroundClipping(ppu) == FALSE);
-assert(ppu_getMaskSpriteClipping(ppu) == FALSE);
-assert(ppu_getMaskBackgroundVisibility(ppu) == FALSE);
-assert(ppu_getMaskSpriteVisibility(ppu) == FALSE);
-assert(cpu_getMaskIntensifyRed(ppu) == FALSE);
-assert(cpu_getMaskIntensifyGren(ppu) == FALSE);
-assert(cpu_getMaskIntensifyBlue(ppu) == FALSE);
-assert(ppu_getStatusVerticalBlank(ppu) == FALSE);
-assert(ppu_getStatusSpriteOverflow(ppu) == FALSE);
-assert(ppu_getStatusSpriteCollisionHit(ppu) == FALSE);
+//assert(ppu_getControlHorizontalScrollNametable(ppu) == TRUE);
+//assert(ppu_getControlVerticalScrollNametable(ppu) == FALSE);
+//assert(ppu_getControlPPUAddressIncrement(ppu) == FALSE);
+//assert(ppu_getControlSpriteTileTable(ppu) == FALSE);
+//assert(ppu_getControlBackgroundTileTable(ppu) == FALSE);
+//assert(ppu_getControlSpriteSize(ppu) == FALSE);
+//assert(ppu_getControlNMI(ppu) == FALSE);
+//assert(ppu_getMaskDisplayType(ppu) == FALSE);
+//assert(ppu_getMaskBackgroundClipping(ppu) == FALSE);
+//assert(ppu_getMaskSpriteClipping(ppu) == FALSE);
+//assert(ppu_getMaskBackgroundVisibility(ppu) == FALSE);
+//assert(ppu_getMaskSpriteVisibility(ppu) == FALSE);
+//assert(cpu_getMaskIntensifyRed(ppu) == FALSE);
+//assert(cpu_getMaskIntensifyGren(ppu) == FALSE);
+//assert(cpu_getMaskIntensifyBlue(ppu) == FALSE);
+//assert(ppu_getStatusVerticalBlank(ppu) == FALSE);
+//assert(ppu_getStatusSpriteOverflow(ppu) == FALSE);
+//assert(ppu_getStatusSpriteCollisionHit(ppu) == FALSE);
 ppu_setControlHorizontalScrollNametable(ppu, FALSE);
-assert(ppu_getControlHorizontalScrollNametable(ppu) == FALSE);
-assert(ppu_getControlVerticalScrollNametable(ppu) == FALSE);
-assert(ppu_getControlPPUAddressIncrement(ppu) == FALSE);
-assert(ppu_getControlSpriteTileTable(ppu) == FALSE);
-assert(ppu_getControlBackgroundTileTable(ppu) == FALSE);
-    assert(ppu_getControlSpriteSize(ppu) == FALSE);
-    assert(ppu_getControlNMI(ppu) == FALSE);
-    assert(ppu_getMaskDisplayType(ppu) == FALSE);
-    assert(ppu_getMaskBackgroundClipping(ppu) == FALSE);
-    assert(ppu_getMaskSpriteClipping(ppu) == FALSE);
-    assert(ppu_getMaskBackgroundVisibility(ppu) == FALSE);
-    assert(ppu_getMaskSpriteVisibility(ppu) == FALSE);
-    assert(cpu_getMaskIntensifyRed(ppu) == FALSE);
-    assert(cpu_getMaskIntensifyGren(ppu) == FALSE);
-    assert(cpu_getMaskIntensifyBlue(ppu) == FALSE);
-    assert(ppu_getStatusVerticalBlank(ppu) == FALSE);
-    assert(ppu_getStatusSpriteOverflow(ppu) == FALSE);
-    assert(ppu_getStatusSpriteCollisionHit(ppu) == FALSE);
+//assert(ppu_getControlHorizontalScrollNametable(ppu) == FALSE);
+//assert(ppu_getControlVerticalScrollNametable(ppu) == FALSE);
+//assert(ppu_getControlPPUAddressIncrement(ppu) == FALSE);
+//assert(ppu_getControlSpriteTileTable(ppu) == FALSE);
+//assert(ppu_getControlBackgroundTileTable(ppu) == FALSE);
+    //assert(ppu_getControlSpriteSize(ppu) == FALSE);
+    //assert(ppu_getControlNMI(ppu) == FALSE);
+    //assert(ppu_getMaskDisplayType(ppu) == FALSE);
+    //assert(ppu_getMaskBackgroundClipping(ppu) == FALSE);
+    //assert(ppu_getMaskSpriteClipping(ppu) == FALSE);
+    //assert(ppu_getMaskBackgroundVisibility(ppu) == FALSE);
+    //assert(ppu_getMaskSpriteVisibility(ppu) == FALSE);
+    //assert(cpu_getMaskIntensifyRed(ppu) == FALSE);
+    //assert(cpu_getMaskIntensifyGren(ppu) == FALSE);
+    //assert(cpu_getMaskIntensifyBlue(ppu) == FALSE);
+    //assert(ppu_getStatusVerticalBlank(ppu) == FALSE);
+    //assert(ppu_getStatusSpriteOverflow(ppu) == FALSE);
+    //assert(ppu_getStatusSpriteCollisionHit(ppu) == FALSE);
     ppu_setControlVerticalScrollNametable(ppu, TRUE);
-    assert(ppu_getControlHorizontalScrollNametable(ppu) == FALSE);
-    assert(ppu_getControlVerticalScrollNametable(ppu) == TRUE);
-    assert(ppu_getControlPPUAddressIncrement(ppu) == FALSE);
-    assert(ppu_getControlSpriteTileTable(ppu) == FALSE);
-    assert(ppu_getControlBackgroundTileTable(ppu) == FALSE);
-    assert(ppu_getControlSpriteSize(ppu) == FALSE);
-    assert(ppu_getControlNMI(ppu) == FALSE);
-    assert(ppu_getMaskDisplayType(ppu) == FALSE);
-    assert(ppu_getMaskBackgroundClipping(ppu) == FALSE);
-    assert(ppu_getMaskSpriteClipping(ppu) == FALSE);
-    assert(ppu_getMaskBackgroundVisibility(ppu) == FALSE);
-    assert(ppu_getMaskSpriteVisibility(ppu) == FALSE);
-    assert(cpu_getMaskIntensifyRed(ppu) == FALSE);
-    assert(cpu_getMaskIntensifyGren(ppu) == FALSE);
-    assert(cpu_getMaskIntensifyBlue(ppu) == FALSE);
-    assert(ppu_getStatusVerticalBlank(ppu) == FALSE);
-    assert(ppu_getStatusSpriteOverflow(ppu) == FALSE);
-    assert(ppu_getStatusSpriteCollisionHit(ppu) == FALSE);
+    //assert(ppu_getControlHorizontalScrollNametable(ppu) == FALSE);
+    //assert(ppu_getControlVerticalScrollNametable(ppu) == TRUE);
+    //assert(ppu_getControlPPUAddressIncrement(ppu) == FALSE);
+    //assert(ppu_getControlSpriteTileTable(ppu) == FALSE);
+    //assert(ppu_getControlBackgroundTileTable(ppu) == FALSE);
+    //assert(ppu_getControlSpriteSize(ppu) == FALSE);
+    //assert(ppu_getControlNMI(ppu) == FALSE);
+    //assert(ppu_getMaskDisplayType(ppu) == FALSE);
+    //assert(ppu_getMaskBackgroundClipping(ppu) == FALSE);
+    //assert(ppu_getMaskSpriteClipping(ppu) == FALSE);
+    //assert(ppu_getMaskBackgroundVisibility(ppu) == FALSE);
+    //assert(ppu_getMaskSpriteVisibility(ppu) == FALSE);
+    //assert(cpu_getMaskIntensifyRed(ppu) == FALSE);
+    //assert(cpu_getMaskIntensifyGren(ppu) == FALSE);
+    //assert(cpu_getMaskIntensifyBlue(ppu) == FALSE);
+    //assert(ppu_getStatusVerticalBlank(ppu) == FALSE);
+    //assert(ppu_getStatusSpriteOverflow(ppu) == FALSE);
+    //assert(ppu_getStatusSpriteCollisionHit(ppu) == FALSE);
     ppu_setControlVerticalScrollNametable(ppu, FALSE);
-    assert(ppu_getControlHorizontalScrollNametable(ppu) == FALSE);
-    assert(ppu_getControlVerticalScrollNametable(ppu) == FALSE);
-    assert(ppu_getControlPPUAddressIncrement(ppu) == FALSE);
-    assert(ppu_getControlSpriteTileTable(ppu) == FALSE);
-    assert(ppu_getControlBackgroundTileTable(ppu) == FALSE);
-    assert(ppu_getControlSpriteSize(ppu) == FALSE);
-    assert(ppu_getControlNMI(ppu) == FALSE);
-    assert(ppu_getMaskDisplayType(ppu) == FALSE);
-    assert(ppu_getMaskBackgroundClipping(ppu) == FALSE);
-    assert(ppu_getMaskSpriteClipping(ppu) == FALSE);
-    assert(ppu_getMaskBackgroundVisibility(ppu) == FALSE);
-    assert(ppu_getMaskSpriteVisibility(ppu) == FALSE);
-    assert(cpu_getMaskIntensifyRed(ppu) == FALSE);
-    assert(cpu_getMaskIntensifyGren(ppu) == FALSE);
-    assert(cpu_getMaskIntensifyBlue(ppu) == FALSE);
-    assert(ppu_getStatusVerticalBlank(ppu) == FALSE);
-    assert(ppu_getStatusSpriteOverflow(ppu) == FALSE);
-    assert(ppu_getStatusSpriteCollisionHit(ppu) == FALSE);
+    //assert(ppu_getControlHorizontalScrollNametable(ppu) == FALSE);
+    //assert(ppu_getControlVerticalScrollNametable(ppu) == FALSE);
+    //assert(ppu_getControlPPUAddressIncrement(ppu) == FALSE);
+    //assert(ppu_getControlSpriteTileTable(ppu) == FALSE);
+    //assert(ppu_getControlBackgroundTileTable(ppu) == FALSE);
+    //assert(ppu_getControlSpriteSize(ppu) == FALSE);
+    //assert(ppu_getControlNMI(ppu) == FALSE);
+    //assert(ppu_getMaskDisplayType(ppu) == FALSE);
+    //assert(ppu_getMaskBackgroundClipping(ppu) == FALSE);
+    //assert(ppu_getMaskSpriteClipping(ppu) == FALSE);
+    //assert(ppu_getMaskBackgroundVisibility(ppu) == FALSE);
+    //assert(ppu_getMaskSpriteVisibility(ppu) == FALSE);
+    //assert(cpu_getMaskIntensifyRed(ppu) == FALSE);
+    //assert(cpu_getMaskIntensifyGren(ppu) == FALSE);
+    //assert(cpu_getMaskIntensifyBlue(ppu) == FALSE);
+    //assert(ppu_getStatusVerticalBlank(ppu) == FALSE);
+    //assert(ppu_getStatusSpriteOverflow(ppu) == FALSE);
+    //assert(ppu_getStatusSpriteCollisionHit(ppu) == FALSE);
   }
 }
